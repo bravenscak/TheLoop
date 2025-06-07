@@ -1,0 +1,163 @@
+.root {
+    -fx-background-color: #1a1a2e;
+    -fx-font-family: "Arial";
+}
+
+.game-board {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 80%, #16213e 0%, #0f3460 100%);
+    -fx-border-color: #eee;
+    -fx-border-width: 2px;
+}
+
+.dr-foo-machine {
+    -fx-fill: linear-gradient(from 0% 0% to 100% 100%, #ff1493, #8b008b);
+    -fx-stroke: #ffffff;
+    -fx-stroke-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(255,20,147,0.8), 10, 0.5, 0, 0);
+}
+
+.era-shape {
+    -fx-stroke: #333;
+    -fx-stroke-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 5, 0.3, 2, 2);
+}
+
+.era-dawn-of-time { -fx-fill: #ffd700; }
+.era-medieval { -fx-fill: #8b4513; }
+.era-renaissance { -fx-fill: #228b22; }
+.era-industry { -fx-fill: #2f4f4f; }
+.era-globalization { -fx-fill: #4169e1; }
+.era-robots { -fx-fill: #c0c0c0; }
+.era-end-of-times { -fx-fill: #9932cc; }
+
+.era-name {
+    -fx-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(gaussian, black, 2, 1.0, 1, 1);
+}
+
+.resource-icon {
+    -fx-font-size: 14px;
+}
+
+.resource-count {
+    -fx-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.vortex-warning {
+    -fx-fill: #ff4444;
+    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+}
+
+.player-indicator {
+    -fx-font-size: 16px;
+}
+
+.card-background {
+    -fx-stroke: #333;
+    -fx-stroke-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 3, 0.3, 1, 1);
+}
+
+.card-background:hover {
+    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.5), 5, 0.5, 0, 0);
+    -fx-cursor: hand;
+}
+
+.card-spiral .card-background { -fx-fill: linear-gradient(to bottom, #ffd700, #ffed4e); }
+.card-star .card-background { -fx-fill: linear-gradient(to bottom, #00bfff, #87ceeb); }
+.card-stripe .card-background { -fx-fill: linear-gradient(to bottom, #ff6347, #ff8c69); }
+.card-black-hole .card-background { -fx-fill: linear-gradient(to bottom, #8a2be2, #9370db); }
+
+.card-name {
+    -fx-fill: #333;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.dimension-icon {
+    -fx-font-size: 14px;
+}
+
+.dimension-text {
+    -fx-fill: #555;
+    -fx-font-size: 8px;
+    -fx-font-weight: bold;
+}
+
+.card-description {
+    -fx-fill: #444;
+    -fx-font-size: 9px;
+}
+
+.original-era {
+    -fx-fill: #666;
+    -fx-font-size: 8px;
+    -fx-font-style: italic;
+}
+
+.player-area {
+    -fx-background-color: #2c3e50;
+    -fx-padding: 10;
+}
+
+.player-hand {
+    -fx-padding: 10;
+}
+
+.player-controls {
+    -fx-padding: 5;
+}
+
+.player-name {
+    -fx-text-fill: #ecf0f1;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.player-location {
+    -fx-text-fill: #bdc3c7;
+    -fx-font-size: 12px;
+}
+
+.game-status {
+    -fx-background-color: #34495e;
+    -fx-padding: 8;
+}
+
+.status-label {
+    -fx-text-fill: #ecf0f1;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.side-panel {
+    -fx-background-color: #2c3e50;
+    -fx-padding: 10;
+}
+
+.panel-title {
+    -fx-text-fill: #ecf0f1;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16;
+}
+
+.button:hover {
+    -fx-background-color: #2980b9;
+}
+
+.button:pressed {
+    -fx-background-color: #21618c;
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="hr.algebra.theloop.controller.EraController">
+
+    <Polygon fx:id="eraShape"
+             points="-60,-30, 60,-30, 40,30, -40,30"
+             styleClass="era-shape"
+             onMouseClicked="#onEraClicked" />
+
+    <VBox alignment="CENTER" spacing="2" mouseTransparent="true">
+
+        <Text fx:id="eraNameText" text="Era Name" styleClass="era-name" />
+
+        <HBox alignment="CENTER" spacing="5">
+            <HBox alignment="CENTER" spacing="2">
+                <Text text="🔴" styleClass="resource-icon" />
+                <Text fx:id="riftsText" text="0" styleClass="resource-count" />
+            </HBox>
+
+            <HBox alignment="CENTER" spacing="2">
+                <Text text="🟢" styleClass="resource-icon" />
+                <Text fx:id="energyText" text="1" styleClass="resource-count" />
+            </HBox>
+        </HBox>
+
+        <Text fx:id="vortexIndicator" text="⚠️ VORTEX" styleClass="vortex-warning" visible="false" />
+
+        <Text fx:id="playerIndicator" text="🕵️" styleClass="player-indicator" visible="false" />
+
+    </VBox>
+
+</StackPane>

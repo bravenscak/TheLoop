@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="hr.algebra.theloop.controller.CardController"
+           prefWidth="120" prefHeight="180">
+
+    <Rectangle fx:id="cardBackground"
+               width="110" height="170"
+               arcWidth="10" arcHeight="10"
+               styleClass="card-background"
+               onMouseClicked="#onCardClicked" />
+
+    <VBox alignment="TOP_CENTER" spacing="5" mouseTransparent="true">
+
+        <Text fx:id="cardNameText" text="Card Name" styleClass="card-name"
+              wrappingWidth="100" textAlignment="CENTER" />
+
+        <HBox alignment="CENTER" spacing="5">
+            <Text fx:id="dimensionIcon" text="⭐" styleClass="dimension-icon" />
+            <Text fx:id="dimensionText" text="STAR" styleClass="dimension-text" />
+        </HBox>
+
+        <Text fx:id="descriptionText" text="Card description here"
+              styleClass="card-description"
+              wrappingWidth="95" textAlignment="CENTER" />
+
+        <Text fx:id="originalEraText" text="Dawn of Time" styleClass="original-era" />
+
+        <Rectangle fx:id="exhaustedOverlay"
+                   width="110" height="170"
+                   fill="#00000080"
+                   visible="false" />
+
+    </VBox>
+
+</StackPane>
