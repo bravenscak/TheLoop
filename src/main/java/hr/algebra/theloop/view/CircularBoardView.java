@@ -77,9 +77,13 @@ public class CircularBoardView extends Pane {
     }
 
     public void updateEra(Era era, int rifts, int energy, boolean hasVortex, boolean playerPresent) {
+        updateEra(era, rifts, energy, 0, hasVortex, playerPresent); // Default 0 duplicates
+    }
+
+    public void updateEra(Era era, int rifts, int energy, int duplicates, boolean hasVortex, boolean playerPresent) {
         SimpleEraView eraView = eraViews.get(era);
         if (eraView != null) {
-            eraView.updateResources(rifts, energy, hasVortex, playerPresent);
+            eraView.updateResources(rifts, energy, duplicates, hasVortex, playerPresent);
         }
     }
 

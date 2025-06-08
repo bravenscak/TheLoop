@@ -1,5 +1,6 @@
 package hr.algebra.theloop.engine;
 
+import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.GameResult;
@@ -17,6 +18,8 @@ public class DrFooAI {
     public void executeDrFooPhase(GameState gameState) {
         System.out.println("\n--- DR. FOO PHASE ---");
 
+        spawnDuplicates(gameState);
+
         Era oldPosition = gameState.getDrFooPosition();
         gameState.moveDrFoo();
         Era newPosition = gameState.getDrFooPosition();
@@ -29,7 +32,55 @@ public class DrFooAI {
         System.out.println("Dropping " + totalRifts + " rifts into cube tower...");
 
         simulateCubeTower(gameState, newPosition, totalRifts);
+
+        ageDuplicates(gameState);
+
         checkDefeatConditions(gameState);
+    }
+
+    private void spawnDuplicates(GameState gameState) {
+        Era randomEra = getRandomEra();
+
+        int duplicatesToSpawn = calculateDuplicatesToSpawn(gameState);
+
+        for (int i = 0; i < duplicatesToSpawn; i++) {
+            Era spawnEra = getRandomEra();
+            Duplicate newDuplicate = new Duplicate(spawnEra);
+            gameState.addDuplicate(spawnEra, newDuplicate);
+
+            System.out.println("🔵 Duplicate spawned at " + spawnEra.getDisplayName() +
+                    " (destroy at " + newDuplicate.getDestroyEra().getDisplayName() + ")");
+        }
+    }
+
+    private int calculateDuplicatesToSpawn(GameState gameState) {
+        int baseSpawn = 1;
+
+        if (gameState.getCurrentCycle() >= 2) {
+            baseSpawn++;
+        }
+        if (gameState.getCurrentCycle() >= 3) {
+            baseSpawn++;
+        }
+
+        if (random.nextDouble() < 0.2) {
+            baseSpawn++;
+        }
+
+        return baseSpawn;
+    }
+
+    private void ageDuplicates(GameState gameState) {
+        for (Era era : Era.values()) {
+            for (Duplicate duplicate : gameState.getDuplicatesAt(era)) {
+                duplicate.ageTurn();
+            }
+        }
+    }
+
+    private Era getRandomEra() {
+        Era[] eras = Era.values();
+        return eras[random.nextInt(eras.length)];
     }
 
     private void simulateCubeTower(GameState gameState, Era drFooEra, int riftsToAdd) {

@@ -11,7 +11,6 @@ import javafx.scene.control.ListView;
 
 import java.util.List;
 
-
 public class GameUIManager {
 
     private final Label turnLabel;
@@ -68,9 +67,12 @@ public class GameUIManager {
 
         for (Era era : Era.values()) {
             boolean playerHere = era.equals(currentPlayer.getCurrentEra());
+            int duplicateCount = state.getDuplicateCount(era);
+
             circularBoard.updateEra(era,
                     state.getRifts(era),
                     state.getEnergy(era),
+                    duplicateCount,
                     state.hasVortex(era),
                     playerHere);
         }

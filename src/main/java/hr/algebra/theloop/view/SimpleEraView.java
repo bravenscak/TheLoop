@@ -14,6 +14,7 @@ public class SimpleEraView extends Pane {
     private final Text nameText;
     private final Text riftsText;
     private final Text energyText;
+    private final Text duplicatesText; // NEW: duplicate display
 
     public SimpleEraView(Era era, double x, double y, double width, double height) {
         this.era = era;
@@ -43,7 +44,13 @@ public class SimpleEraView extends Pane {
         energyText.setLayoutX(35);
         energyText.setLayoutY(35);
 
-        getChildren().addAll(background, nameText, riftsText, energyText);
+        duplicatesText = new Text("👤0");
+        duplicatesText.setLayoutX(5);
+        duplicatesText.setLayoutY(50);
+        duplicatesText.setFont(Font.font("Arial", FontWeight.NORMAL, 8));
+        duplicatesText.setFill(Color.LIGHTBLUE);
+
+        getChildren().addAll(background, nameText, riftsText, energyText, duplicatesText);
 
         setOnMouseClicked(event -> {
             System.out.println("🖱️ " + era.getDisplayName() + " clicked");
@@ -52,14 +59,28 @@ public class SimpleEraView extends Pane {
     }
 
     public void updateResources(int rifts, int energy, boolean hasVortex, boolean playerPresent) {
+        updateResources(rifts, energy, 0, hasVortex, playerPresent); // Default 0 duplicates
+    }
+
+    public void updateResources(int rifts, int energy, int duplicates, boolean hasVortex, boolean playerPresent) {
         riftsText.setText("🔴" + rifts);
         energyText.setText("🟢" + energy);
+
+        if (duplicates > 0) {
+            duplicatesText.setText("👤" + duplicates);
+            duplicatesText.setVisible(true);
+        } else {
+            duplicatesText.setVisible(false);
+        }
 
         if (hasVortex) {
             background.setStroke(Color.RED);
             background.setStrokeWidth(4);
         } else if (playerPresent) {
             background.setStroke(Color.YELLOW);
+            background.setStrokeWidth(3);
+        } else if (duplicates > 0) {
+            background.setStroke(Color.LIGHTBLUE);
             background.setStrokeWidth(3);
         } else {
             background.setStroke(Color.WHITE);

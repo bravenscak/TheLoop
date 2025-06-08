@@ -1,9 +1,6 @@
 package hr.algebra.theloop.engine;
 
-import hr.algebra.theloop.cards.ArtifactCard;
-import hr.algebra.theloop.cards.EnergyCard;
-import hr.algebra.theloop.cards.MovementCard;
-import hr.algebra.theloop.cards.RiftCard;
+import hr.algebra.theloop.cards.*;
 import hr.algebra.theloop.model.*;
 import lombok.Data;
 
@@ -41,8 +38,8 @@ public class GameEngine {
 
     private void giveStartingCards(Player player) {
         player.addCardToHand(new EnergyCard("Basic Energy", Era.DAWN_OF_TIME, 1));
-        player.addCardToHand(new MovementCard("Basic Move", Era.MEDIEVAL, 1));
-        player.addCardToHand(new RiftCard("Basic Repair", Era.RENAISSANCE, 1));
+        player.addCardToHand(new RiftCard("Basic Repair", Era.MEDIEVAL, 1));
+        player.addCardToHand(new PushDuplicateCard("Push Duplicate", Era.RENAISSANCE));
     }
 
     public void startGame() {
@@ -161,6 +158,16 @@ public class GameEngine {
 
         System.out.println("Vortexes: " + gameState.getVortexCount() + "/4");
         System.out.println("Active Missions: " + gameState.getActiveMissions().size());
+
+        int totalDuplicates = 0;
+        for (Era era : Era.values()) {
+            int duplicateCount = gameState.getDuplicateCount(era);
+            if (duplicateCount > 0) {
+                System.out.println("  Duplicates at " + era.getDisplayName() + ": " + duplicateCount);
+                totalDuplicates += duplicateCount;
+            }
+        }
+        System.out.println("Total Duplicates: " + totalDuplicates);
 
         if (gameState.isGameOver()) {
             System.out.println("\n" + gameState.getGameResult().getMessage());

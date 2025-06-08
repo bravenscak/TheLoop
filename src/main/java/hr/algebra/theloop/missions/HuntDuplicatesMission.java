@@ -14,13 +14,21 @@ public class HuntDuplicatesMission extends Mission {
 
     @Override
     public boolean checkProgress(GameState gameState, Player player, String actionType) {
+        if ("PushDuplicateCard".equals(actionType) || "DestroyDuplicateCard".equals(actionType)) {
+            if (player.getCurrentEra().equals(gameState.getDrFooPosition())) {
+                System.out.println("🎯 Duplicate destroyed on Dr. Foo's era!");
+                addProgress(1);
+                return true;
+            }
+        }
 
         return false;
     }
 
     @Override
     public String toString() {
-        return String.format("%s (%d/%d) - follows Dr. Foo",
-                name, currentProgress, requiredProgress);
+        return String.format("%s (%d/%d) - follows Dr. Foo @ %s",
+                name, currentProgress, requiredProgress,
+                assignedEra != null ? assignedEra.getDisplayName() : "current era");
     }
 }
