@@ -1,11 +1,10 @@
 package hr.algebra.theloop.engine;
 
 import hr.algebra.theloop.cards.ArtifactCard;
-import hr.algebra.theloop.cards.energy.EnergyCard;
-import hr.algebra.theloop.cards.movement.MovementCard;
-import hr.algebra.theloop.cards.rift.RiftCard;
+import hr.algebra.theloop.cards.EnergyCard;
+import hr.algebra.theloop.cards.MovementCard;
+import hr.algebra.theloop.cards.RiftCard;
 import hr.algebra.theloop.model.*;
-import hr.algebra.theloop.model.missions.*;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -20,12 +19,18 @@ public class GameEngine {
     private int currentPlayerIndex;
     private boolean waitingForPlayerInput;
 
+    private final DrFooAI drFooAI;
+    private final MissionManager missionManager;
+
     public GameEngine() {
         this.gameState = new GameState();
         this.players = new ArrayList<>();
         this.random = new Random();
         this.currentPlayerIndex = 0;
         this.waitingForPlayerInput = false;
+
+        this.drFooAI = new DrFooAI(random);
+        this.missionManager = new MissionManager(random);
     }
 
     public void addPlayer(String name, Era startingEra) {
@@ -45,10 +50,8 @@ public class GameEngine {
             throw new IllegalStateException("No players added!");
         }
 
-        initializeMissions();
-
+        missionManager.initializeMissions(gameState);
         players.get(0).setCurrentPlayer(true);
-
         waitingForPlayerInput = true;
 
         System.out.println("🎮 THE LOOP GAME STARTED!");
@@ -59,90 +62,15 @@ public class GameEngine {
         System.out.println("⏳ Waiting for player actions... Click cards or use buttons!");
     }
 
-    private void initializeMissions() {
-        gameState.addMission(new StabilizeEraMission(Era.MEDIEVAL));
-        gameState.addMission(new EnergySurgeMission(Era.RENAISSANCE));
-
-        System.out.println("🎯 Missions initialized:");
-        for (Mission mission : gameState.getActiveMissions()) {
-            System.out.println("  - " + mission.toString());
-        }
-    }
-
     public void processTurn() {
         if (gameState.isGameOver()) {
             return;
         }
 
-        drFooPhase();
+        drFooAI.executeDrFooPhase(gameState);
         waitingForPlayerInput = true;
 
         System.out.println("⏳ Waiting for player actions... Click cards or use buttons!");
-    }
-
-    private void drFooPhase() {
-        System.out.println("\n--- DR. FOO PHASE ---");
-
-        Era oldPosition = gameState.getDrFooPosition();
-        gameState.moveDrFoo();
-        Era newPosition = gameState.getDrFooPosition();
-
-        System.out.println("Dr. Foo moves: " + oldPosition.getDisplayName() + " → " + newPosition.getDisplayName());
-
-        int duplicatesHere = gameState.getDuplicateCount(newPosition);
-        int totalRifts = 2 + duplicatesHere;
-
-        System.out.println("Dropping " + totalRifts + " rifts into cube tower...");
-
-        simulateCubeTower(newPosition, totalRifts);
-
-        checkDefeatConditions();
-    }
-
-    private void simulateCubeTower(Era drFooEra, int riftsToAdd) {
-        Era[] possibleTargets = {
-                drFooEra.getPrevious(),
-                drFooEra,
-                drFooEra.getNext()
-        };
-
-        System.out.println("🎲 Cube tower targets: " +
-                possibleTargets[0].getDisplayName() + ", " +
-                possibleTargets[1].getDisplayName() + ", " +
-                possibleTargets[2].getDisplayName());
-
-        for (int i = 0; i < riftsToAdd; i++) {
-            Era targetEra = possibleTargets[random.nextInt(3)];
-            addRiftToEra(targetEra);
-        }
-    }
-
-    private void addRiftToEra(Era era) {
-        int currentRifts = gameState.getRifts(era);
-
-        if (currentRifts >= 3) {
-            System.out.println("⚠️ VORTEX created at " + era.getDisplayName() + "!");
-            gameState.createVortex(era);
-        } else {
-            gameState.addRifts(era, 1);
-            System.out.println("🔴 Added 1 rift to " + era.getDisplayName() + " (" + (currentRifts + 1) + "/3)");
-        }
-    }
-
-    private void checkDefeatConditions() {
-        if (gameState.getVortexCount() >= 4) {
-            gameState.endGame(GameResult.DEFEAT_VORTEXES);
-            System.out.println("💀 DEFEAT: 4 vortexes created!");
-            return;
-        }
-
-        if (gameState.getCurrentCycle() > 3) {
-            gameState.endGame(GameResult.DEFEAT_CYCLES);
-            System.out.println("💀 DEFEAT: Dr. Foo completed 3 cycles!");
-            return;
-        }
-
-        // Rule 3: 2 vortexes in same era = defeat (TODO: implement later)
     }
 
     public boolean playCard(Player player, int cardIndex, Era targetEra) {
@@ -150,12 +78,12 @@ public class GameEngine {
             return false;
         }
 
-        List<hr.algebra.theloop.cards.ArtifactCard> hand = player.getHand();
+        List<ArtifactCard> hand = player.getHand();
         if (cardIndex < 0 || cardIndex >= hand.size()) {
             return false;
         }
 
-        hr.algebra.theloop.cards.ArtifactCard card = hand.get(cardIndex);
+        ArtifactCard card = hand.get(cardIndex);
         if (!card.canExecute(gameState, player)) {
             System.out.println("❌ Cannot play " + card.getName());
             return false;
@@ -164,41 +92,9 @@ public class GameEngine {
         card.execute(gameState, player);
         System.out.println("✅ Played: " + card.getName());
 
-        checkAllMissions(player, card.getClass().getSimpleName());
+        missionManager.checkAllMissions(gameState, player, card.getClass().getSimpleName());
 
         return true;
-    }
-
-    private void checkMissionProgress(Player player, hr.algebra.theloop.cards.ArtifactCard card) {
-        for (Mission mission : new ArrayList<>(gameState.getActiveMissions())) {
-            if (mission.checkProgress(gameState, player, card.getClass().getSimpleName())) {
-                if (mission.isCompleted()) {
-                    gameState.completeMission(mission);
-
-                    if (gameState.getActiveMissions().size() < 2) {
-                        addRandomMission();
-                    }
-                }
-            }
-        }
-
-        if (gameState.getTotalMissionsCompleted() >= 4) {
-            gameState.endGame(GameResult.VICTORY);
-            System.out.println("🎉 VICTORY: 4 missions completed!");
-        }
-    }
-
-    private void addRandomMission() {
-        Era[] eras = Era.values();
-        Era randomEra = eras[random.nextInt(eras.length)];
-
-        if (random.nextBoolean()) {
-            gameState.addMission(new StabilizeEraMission(randomEra));
-        } else {
-            gameState.addMission(new EnergySurgeMission(randomEra));
-        }
-
-        System.out.println("🎯 New mission added!");
     }
 
     public boolean movePlayer(Player player, Era targetEra) {
@@ -214,7 +110,7 @@ public class GameEngine {
                 player.moveToEra(targetEra);
                 System.out.println("🚶 " + player.getName() + " moved to " + targetEra.getDisplayName() + " (free)");
 
-                checkAllMissions(player, "Movement");
+                missionManager.checkAllMissions(gameState, player, "Movement");
 
                 return true;
             } else if (gameState.getEnergy(currentEra) > 0) {
@@ -222,7 +118,7 @@ public class GameEngine {
                 player.moveToEra(targetEra);
                 System.out.println("🚶 " + player.getName() + " moved to " + targetEra.getDisplayName() + " (1 energy)");
 
-                checkAllMissions(player, "Movement");
+                missionManager.checkAllMissions(gameState, player, "Movement");
 
                 return true;
             }
@@ -271,30 +167,6 @@ public class GameEngine {
         }
     }
 
-    private void checkAllMissions(Player player, String actionType) {
-        List<Mission> missionsToComplete = new ArrayList<>();
-
-        for (Mission mission : gameState.getActiveMissions()) {
-            if (!mission.isCompleted() && mission.checkProgress(gameState, player, actionType)) {
-                if (mission.isCompleted()) {
-                    missionsToComplete.add(mission);
-                }
-            }
-        }
-
-        for (Mission mission : missionsToComplete) {
-            gameState.completeMission(mission);
-
-            if (gameState.getActiveMissions().size() < 2) {
-                addRandomMission();
-            }
-        }
-
-        if (gameState.getTotalMissionsCompleted() >= 4) {
-            gameState.endGame(GameResult.VICTORY);
-            System.out.println("🎉 VICTORY: 4 missions completed!");
-        }
-    }
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
     }

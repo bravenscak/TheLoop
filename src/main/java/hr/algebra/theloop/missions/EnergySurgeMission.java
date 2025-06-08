@@ -1,8 +1,7 @@
-package hr.algebra.theloop.model.missions;
+package hr.algebra.theloop.missions;
 
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
-import hr.algebra.theloop.model.Mission;
 import hr.algebra.theloop.model.Player;
 public class EnergySurgeMission extends Mission {
 
@@ -19,7 +18,7 @@ public class EnergySurgeMission extends Mission {
 
         if (currentEnergy >= 5 && !completed) {
             System.out.println("🎯 Energy surge achieved at " + assignedEra.getDisplayName() + "!");
-            addProgress(5); 
+            addProgress(5);
             return true;
         }
 

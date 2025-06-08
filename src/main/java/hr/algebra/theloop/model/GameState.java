@@ -1,12 +1,11 @@
 package hr.algebra.theloop.model;
 
+import hr.algebra.theloop.missions.Mission;
 import lombok.Data;
 import lombok.NonNull;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
 
 @Data
 public class GameState implements Serializable {
@@ -14,12 +13,6 @@ public class GameState implements Serializable {
     @NonNull private Era drFooPosition;
     private int drFooMovesThisCycle;
     private int currentCycle;
-
-    private Map<Era, Integer> rifts;
-    private Map<Era, Integer> energy;
-    private Set<Era> vortexes;
-
-    private Map<Era, List<Duplicate>> duplicates;
 
     private List<Mission> activeMissions;
     private List<Mission> completedMissions;
@@ -29,6 +22,8 @@ public class GameState implements Serializable {
     private boolean gameOver;
     private GameResult gameResult;
 
+    private GameResources resources;
+
     public GameState() {
         this.drFooPosition = Era.DAWN_OF_TIME;
         this.drFooMovesThisCycle = 0;
@@ -36,87 +31,70 @@ public class GameState implements Serializable {
         this.turnNumber = 1;
         this.gameOver = false;
 
-        this.rifts = new ConcurrentHashMap<>();
-        this.energy = new ConcurrentHashMap<>();
-        this.vortexes = ConcurrentHashMap.newKeySet();
-        this.duplicates = new ConcurrentHashMap<>();
-
         this.activeMissions = new ArrayList<>();
         this.completedMissions = new ArrayList<>();
         this.totalMissionsCompleted = 0;
 
-        for (Era era : Era.values()) {
-            rifts.put(era, 0);
-            energy.put(era, 1); // Each era starts with 1 energy
-            duplicates.put(era, new ArrayList<>());
-        }
+        this.resources = new GameResources();
     }
 
     public int getRifts(Era era) {
-        return rifts.getOrDefault(era, 0);
+        return resources.getRifts(era);
     }
 
     public void addRifts(Era era, int amount) {
-        int current = getRifts(era);
-        rifts.put(era, current + amount);
+        resources.addRifts(era, amount);
 
-        if (current + amount >= 3 && !vortexes.contains(era)) {
+        if (resources.getRifts(era) >= 3 && !resources.hasVortex(era)) {
             createVortex(era);
         }
     }
 
     public void removeRifts(Era era, int amount) {
-        int current = getRifts(era);
-        int newAmount = Math.max(0, current - amount);
-        rifts.put(era, newAmount);
+        resources.removeRifts(era, amount);
     }
 
     public int getEnergy(Era era) {
-        return energy.getOrDefault(era, 0);
+        return resources.getEnergy(era);
     }
 
     public void addEnergy(Era era, int amount) {
-        int current = getEnergy(era);
-        energy.put(era, current + amount);
+        resources.addEnergy(era, amount);
     }
 
     public void removeEnergy(Era era, int amount) {
-        int current = getEnergy(era);
-        int newAmount = Math.max(0, current - amount);
-        energy.put(era, newAmount);
+        resources.removeEnergy(era, amount);
     }
 
     public boolean hasVortex(Era era) {
-        return vortexes.contains(era);
+        return resources.hasVortex(era);
     }
 
     public void createVortex(Era era) {
-        vortexes.add(era);
-        rifts.put(era, 0);
+        resources.createVortex(era);
         activeMissions.removeIf(mission -> era.equals(mission.getAssignedEra()));
 
         System.out.println("⚠️ VORTEX created at " + era.getDisplayName() + "!");
     }
 
     public int getVortexCount() {
-        return vortexes.size();
+        return resources.getVortexCount();
     }
 
     public List<Duplicate> getDuplicatesAt(Era era) {
-        return new ArrayList<>(duplicates.getOrDefault(era, new ArrayList<>()));
+        return resources.getDuplicatesAt(era);
     }
 
     public void addDuplicate(Era era, Duplicate duplicate) {
-        duplicates.computeIfAbsent(era, k -> new ArrayList<>()).add(duplicate);
+        resources.addDuplicate(era, duplicate);
     }
 
     public boolean removeDuplicate(Era era, Duplicate duplicate) {
-        List<Duplicate> eraDuplicates = duplicates.get(era);
-        return eraDuplicates != null && eraDuplicates.remove(duplicate);
+        return resources.removeDuplicate(era, duplicate);
     }
 
     public int getDuplicateCount(Era era) {
-        return duplicates.getOrDefault(era, new ArrayList<>()).size();
+        return resources.getDuplicateCount(era);
     }
 
     public void moveDrFoo() {
@@ -161,7 +139,7 @@ public class GameState implements Serializable {
     }
 
     public boolean isGameLost() {
-        return vortexes.size() >= 3 || currentCycle > 3;
+        return resources.getVortexCount() >= 3 || currentCycle > 3;
     }
 
     public void endGame(GameResult result) {
@@ -174,31 +152,25 @@ public class GameState implements Serializable {
     }
 
     public int getTotalRifts() {
-        return rifts.values().stream().mapToInt(Integer::intValue).sum();
+        return resources.getTotalRifts();
     }
 
     public int getTotalEnergy() {
-        return energy.values().stream().mapToInt(Integer::intValue).sum();
+        return resources.getTotalEnergy();
     }
 
     public Era getEraWithMostRifts() {
-        return rifts.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(Era.DAWN_OF_TIME);
+        return resources.getEraWithMostRifts();
     }
 
     public Era getEraWithMostEnergy() {
-        return energy.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(Era.DAWN_OF_TIME);
+        return resources.getEraWithMostEnergy();
     }
 
     @Override
     public String toString() {
         return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3]",
                 turnNumber, drFooPosition.getDisplayName(), currentCycle,
-                totalMissionsCompleted, vortexes.size());
+                totalMissionsCompleted, resources.getVortexCount());
     }
 }

@@ -1,5 +1,8 @@
-package hr.algebra.theloop.model;
+package hr.algebra.theloop.missions;
 
+import hr.algebra.theloop.model.Era;
+import hr.algebra.theloop.model.GameState;
+import hr.algebra.theloop.model.Player;
 import lombok.Data;
 
 import java.io.Serializable;

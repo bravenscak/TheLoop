@@ -1,7 +1,5 @@
-package hr.algebra.theloop.cards.rift;
+package hr.algebra.theloop.cards;
 
-import hr.algebra.theloop.cards.ArtifactCard;
-import hr.algebra.theloop.cards.CardDimension;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;

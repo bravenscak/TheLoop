@@ -1,8 +1,7 @@
-package hr.algebra.theloop.model.missions;
+package hr.algebra.theloop.missions;
 
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
-import hr.algebra.theloop.model.Mission;
 import hr.algebra.theloop.model.Player;
 
 public class StabilizeEraMission extends Mission {
