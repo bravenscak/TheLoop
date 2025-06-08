@@ -106,6 +106,25 @@ public class CardController implements Initializable {
         if (exhaustedOverlay != null) {
             exhaustedOverlay.setVisible(exhausted);
         }
+
+        // DODANO: Dodatni visual feedback
+        if (cardBackground != null) {
+            if (exhausted) {
+                cardBackground.setOpacity(0.5); // Zatamni pozadinu
+                cardBackground.getStyleClass().add("card-exhausted");
+            } else {
+                cardBackground.setOpacity(1.0); // Puna opacity
+                cardBackground.getStyleClass().remove("card-exhausted");
+            }
+        }
+
+        // DODANO: Zatamni text kada je exhausted
+        if (cardNameText != null) {
+            cardNameText.setOpacity(exhausted ? 0.6 : 1.0);
+        }
+        if (descriptionText != null) {
+            descriptionText.setOpacity(exhausted ? 0.6 : 1.0);
+        }
     }
 
     public void setSelected(boolean selected) {

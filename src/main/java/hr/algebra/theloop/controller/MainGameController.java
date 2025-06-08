@@ -157,6 +157,12 @@ public class MainGameController implements Initializable {
         }
 
         if (gameEngine.isWaitingForPlayerInput()) {
+            if (selectedCard != null) {
+                selectedCard.setSelected(false);
+                selectedCard = null;
+                selectedCardIndex = -1;
+            }
+
             gameEngine.endPlayerTurn();
         } else {
             gameEngine.processTurn();
@@ -172,6 +178,46 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void performLoop() {
+        if (!gameRunning || gameEngine.isGameOver() || !gameEngine.isWaitingForPlayerInput()) {
+            return;
+        }
+
+        Player currentPlayer = gameEngine.getCurrentPlayer();
+
+        boolean hasExhaustedCards = currentPlayer.getHand().stream()
+                .anyMatch(card -> card.isExhausted());
+
+        if (!hasExhaustedCards) {
+            System.out.println("❌ No exhausted cards to LOOP");
+            return;
+        }
+
+        int loopCost = currentPlayer.getLoopsPerformedThisTurn() + 1;
+        Era playerEra = currentPlayer.getCurrentEra();
+        int availableEnergy = gameEngine.getGameState().getEnergy(playerEra);
+
+        if (availableEnergy < loopCost) {
+            System.out.println("❌ Not enough energy for LOOP! Need " + loopCost + ", have " + availableEnergy);
+            return;
+        }
+
+        gameEngine.getGameState().removeEnergy(playerEra, loopCost);
+
+        int readiedCards = 0;
+        for (ArtifactCard card : currentPlayer.getHand()) {
+            if (card.isExhausted()) {
+                card.ready();
+                readiedCards++;
+            }
+        }
+
+        currentPlayer.setLoopsPerformedThisTurn(currentPlayer.getLoopsPerformedThisTurn() + 1);
+
+        System.out.println("🔄 LOOP performed! Readied " + readiedCards + " cards for " + loopCost + " energy");
+        System.out.println("   Energy remaining: " + gameEngine.getGameState().getEnergy(playerEra));
+
+        updatePlayerHand();
+        updateUI();
     }
 
     @FXML

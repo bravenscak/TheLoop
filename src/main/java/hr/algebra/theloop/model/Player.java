@@ -155,6 +155,14 @@ public class Player implements Serializable {
                 " " + dimension.getDisplayName() + " cards for " + loopCost + " energy");
     }
 
+    public int getLoopsPerformedThisTurn() {
+        return loopsPerformedThisTurn;
+    }
+
+    public void setLoopsPerformedThisTurn(int loops) {
+        this.loopsPerformedThisTurn = loops;
+    }
+
     public List<ArtifactCard> getReadyCards() {
         return hand.stream()
                 .filter(card -> !card.isExhausted())

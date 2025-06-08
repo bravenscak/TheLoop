@@ -29,7 +29,6 @@ public abstract class Mission implements Serializable {
         currentProgress = Math.min(currentProgress + amount, requiredProgress);
         if (currentProgress >= requiredProgress && !completed) {
             completed = true;
-            System.out.println("🎯 MISSION COMPLETED: " + name);
         }
     }
 
