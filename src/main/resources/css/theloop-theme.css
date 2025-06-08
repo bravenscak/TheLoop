@@ -57,6 +57,7 @@
     -fx-font-size: 16px;
 }
 
+/* CARD STYLES - FIXED */
 .card-background {
     -fx-stroke: #333;
     -fx-stroke-width: 1;
@@ -68,10 +69,41 @@
     -fx-cursor: hand;
 }
 
-.card-spiral .card-background { -fx-fill: linear-gradient(to bottom, #ffd700, #ffed4e); }
-.card-star .card-background { -fx-fill: linear-gradient(to bottom, #00bfff, #87ceeb); }
-.card-stripe .card-background { -fx-fill: linear-gradient(to bottom, #ff6347, #ff8c69); }
-.card-black-hole .card-background { -fx-fill: linear-gradient(to bottom, #8a2be2, #9370db); }
+/* Card dimension colors */
+.card-spiral .card-background {
+    -fx-fill: linear-gradient(to bottom, #ffd700, #ffed4e);
+}
+.card-star .card-background {
+    -fx-fill: linear-gradient(to bottom, #00bfff, #87ceeb);
+}
+.card-stripe .card-background {
+    -fx-fill: linear-gradient(to bottom, #ff6347, #ff8c69);
+}
+.card-black-hole .card-background {
+    -fx-fill: linear-gradient(to bottom, #8a2be2, #9370db);
+}
+
+/* FIXED: Card selection state - MORE SPECIFIC SELECTORS */
+.card-background.card-selected {
+    -fx-stroke: #00ff00 !important;
+    -fx-stroke-width: 4 !important;
+    -fx-effect: dropshadow(gaussian, #00ff00, 10, 0.8, 0, 0) !important;
+}
+
+/* Alternative strong selection style */
+StackPane .card-background.card-selected {
+    -fx-stroke: #00ff00;
+    -fx-stroke-width: 5;
+    -fx-effect: dropshadow(gaussian, #00ff00, 12, 1.0, 0, 0);
+}
+
+/* Empty card slot */
+.card-empty .card-background {
+    -fx-fill: #2c3e50;
+    -fx-stroke: #555;
+    -fx-stroke-width: 2;
+    -fx-stroke-dash-array: 5 5;
+}
 
 .card-name {
     -fx-fill: #333;
@@ -160,4 +192,15 @@
 
 .button:pressed {
     -fx-background-color: #21618c;
+}
+
+/* Button states */
+.button:disabled {
+    -fx-background-color: #7f8c8d;
+    -fx-text-fill: #bdc3c7;
+}
+
+/* Era hover effects */
+.era-view:hover {
+    -fx-cursor: hand;
 }

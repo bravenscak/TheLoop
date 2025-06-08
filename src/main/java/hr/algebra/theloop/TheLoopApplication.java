@@ -11,13 +11,13 @@ public class TheLoopApplication extends Application {
     public void start(Stage primaryStage) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainGame.fxml"));
-            Scene scene = new Scene(loader.load(), 1000, 1000);
+            Scene scene = new Scene(loader.load(), 750,750);
 
             scene.getStylesheets().add(getClass().getResource("/css/theloop-theme.css").toExternalForm());
 
             primaryStage.setTitle("The Loop - Time Agent Mission");
             primaryStage.setScene(scene);
-            primaryStage.setResizable(false);
+            primaryStage.setResizable(true);
             primaryStage.show();
 
         } catch (Exception e) {

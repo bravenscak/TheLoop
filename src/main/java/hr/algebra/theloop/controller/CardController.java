@@ -25,9 +25,16 @@ public class CardController implements Initializable {
     private boolean isEmpty = true;
     private boolean isSelected = false;
 
+    // Click handler for parent controller
+    private Runnable clickHandler;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setEmpty();
+    }
+
+    public void setClickHandler(Runnable handler) {
+        this.clickHandler = handler;
     }
 
     public void setCard(ArtifactCard card) {
@@ -74,6 +81,7 @@ public class CardController implements Initializable {
     private void updateCardStyle() {
         if (cardBackground == null) return;
 
+        // FIXED: Clear all previous style classes
         cardBackground.getStyleClass().clear();
         cardBackground.getStyleClass().add("card-background");
 
@@ -81,72 +89,90 @@ public class CardController implements Initializable {
             cardBackground.getStyleClass().add("card-empty");
         } else if (card != null) {
             CardDimension dimension = card.getDimension();
-            cardBackground.getStyleClass().add("card-" + dimension.name().toLowerCase().replace("_", "-"));
+            String dimensionClass = "card-" + dimension.name().toLowerCase().replace("_", "-");
+            cardBackground.getStyleClass().add(dimensionClass);
+
+            System.out.println("🎨 Applied card style: " + dimensionClass);
         }
 
+        // FIXED: Apply selection style AFTER dimension style for priority
         if (isSelected) {
             cardBackground.getStyleClass().add("card-selected");
+            System.out.println("🟢 Applied selection style");
         }
+
+        // FORCE style update
+        cardBackground.applyCss();
     }
 
     private void setExhausted(boolean exhausted) {
         if (exhaustedOverlay != null) {
             exhaustedOverlay.setVisible(exhausted);
+            if (exhausted) {
+                System.out.println("🔘 Card exhausted overlay shown");
+            }
         }
     }
 
     public void setSelected(boolean selected) {
         this.isSelected = selected;
         updateCardStyle();
+
+        if (selected) {
+            System.out.println("🟢 Card SELECTED: " + (card != null ? card.getName() : "Empty"));
+        } else {
+            System.out.println("⚪ Card deselected");
+        }
     }
 
     @FXML
     private void onCardClicked(MouseEvent event) {
-        if (isEmpty || card == null) {
-            System.out.println("Empty card slot clicked");
-            return;
+        System.out.println("🖱️ Card clicked: " + (isEmpty ? "Empty slot" : card.getName()));
+
+        if (clickHandler != null) {
+            clickHandler.run();
         }
 
-        System.out.println("Card clicked: " + card.getName() +
-                " (" + card.getDimension().getDisplayName() + ")");
-
-        setSelected(!isSelected);
-
-        // TODO: Implement card play logic
-
-        if (isSelected) {
-            System.out.println("Card selected for play");
-            // Notify parent controller that this card is selected
-        } else {
-            System.out.println("Card deselected");
-        }
+        // Prevent event propagation
+        event.consume();
     }
 
+    // IMPROVED: Better validation logic
     public boolean canPlayCard() {
-        return !isEmpty && card != null && !card.isExhausted();
+        if (isEmpty || card == null) {
+            System.out.println("❌ Cannot play: empty slot");
+            return false;
+        }
+
+        if (card.isExhausted()) {
+            System.out.println("❌ Cannot play: card exhausted");
+            return false;
+        }
+
+        return true;
     }
 
     public void playCard() {
         if (!canPlayCard()) {
-            System.out.println("Cannot play card: " +
-                    (isEmpty ? "empty slot" :
-                            card.isExhausted() ? "exhausted" : "unknown reason"));
             return;
         }
 
+        card.exhaust();
         setExhausted(true);
         setSelected(false);
 
-        System.out.println("Card played: " + card.getName());
+        System.out.println("✅ Card played and exhausted: " + card.getName());
     }
 
     public void readyCard() {
         if (card != null) {
             card.ready();
             setExhausted(false);
+            System.out.println("🔄 Card readied: " + card.getName());
         }
     }
 
+    // Getters
     public ArtifactCard getCard() {
         return card;
     }
