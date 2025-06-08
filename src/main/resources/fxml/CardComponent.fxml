@@ -7,13 +7,13 @@
 
 <StackPane xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="hr.algebra.theloop.controller.CardController"
-           prefWidth="80" prefHeight="110">
+           prefWidth="80" prefHeight="110"
+           onMouseClicked="#onCardClicked">
 
     <Rectangle fx:id="cardBackground"
                width="75" height="105"
                arcWidth="8" arcHeight="8"
-               styleClass="card-background"
-               onMouseClicked="#onCardClicked" />
+               styleClass="card-background" />
 
     <VBox alignment="TOP_CENTER" spacing="2" mouseTransparent="true">
 
@@ -34,7 +34,8 @@
         <Rectangle fx:id="exhaustedOverlay"
                    width="75" height="105"
                    fill="#00000080"
-                   visible="false" />
+                   visible="false"
+                   mouseTransparent="true" />
 
     </VBox>
 

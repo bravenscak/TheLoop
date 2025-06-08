@@ -24,8 +24,6 @@ public class CardController implements Initializable {
     private ArtifactCard card;
     private boolean isEmpty = true;
     private boolean isSelected = false;
-
-    // Click handler for parent controller
     private Runnable clickHandler;
 
     @Override
@@ -81,71 +79,67 @@ public class CardController implements Initializable {
     private void updateCardStyle() {
         if (cardBackground == null) return;
 
-        // FIXED: Clear all previous style classes
         cardBackground.getStyleClass().clear();
         cardBackground.getStyleClass().add("card-background");
 
         if (isEmpty) {
             cardBackground.getStyleClass().add("card-empty");
+            cardBackground.setStroke(javafx.scene.paint.Color.GRAY);
+            cardBackground.setStrokeWidth(1);
         } else if (card != null) {
             CardDimension dimension = card.getDimension();
             String dimensionClass = "card-" + dimension.name().toLowerCase().replace("_", "-");
             cardBackground.getStyleClass().add(dimensionClass);
 
-            System.out.println("🎨 Applied card style: " + dimensionClass);
+            cardBackground.setStroke(javafx.scene.paint.Color.web("#333"));
+            cardBackground.setStrokeWidth(1);
         }
 
-        // FIXED: Apply selection style AFTER dimension style for priority
         if (isSelected) {
             cardBackground.getStyleClass().add("card-selected");
-            System.out.println("🟢 Applied selection style");
+            cardBackground.setStroke(javafx.scene.paint.Color.LIME);
+            cardBackground.setStrokeWidth(4);
         }
-
-        // FORCE style update
-        cardBackground.applyCss();
     }
 
     private void setExhausted(boolean exhausted) {
         if (exhaustedOverlay != null) {
             exhaustedOverlay.setVisible(exhausted);
-            if (exhausted) {
-                System.out.println("🔘 Card exhausted overlay shown");
-            }
         }
     }
 
     public void setSelected(boolean selected) {
         this.isSelected = selected;
-        updateCardStyle();
 
-        if (selected) {
-            System.out.println("🟢 Card SELECTED: " + (card != null ? card.getName() : "Empty"));
-        } else {
-            System.out.println("⚪ Card deselected");
+        if (cardBackground != null) {
+            cardBackground.getStyleClass().removeAll("card-selected");
+
+            if (selected) {
+                cardBackground.getStyleClass().add("card-selected");
+                cardBackground.setStroke(javafx.scene.paint.Color.LIME);
+                cardBackground.setStrokeWidth(4);
+            } else {
+                updateCardStyle();
+            }
+
+            cardBackground.autosize();
         }
     }
 
     @FXML
     private void onCardClicked(MouseEvent event) {
-        System.out.println("🖱️ Card clicked: " + (isEmpty ? "Empty slot" : card.getName()));
-
         if (clickHandler != null) {
             clickHandler.run();
         }
-
-        // Prevent event propagation
         event.consume();
     }
 
-    // IMPROVED: Better validation logic
     public boolean canPlayCard() {
         if (isEmpty || card == null) {
-            System.out.println("❌ Cannot play: empty slot");
             return false;
         }
 
         if (card.isExhausted()) {
-            System.out.println("❌ Cannot play: card exhausted");
             return false;
         }
 
@@ -160,19 +154,15 @@ public class CardController implements Initializable {
         card.exhaust();
         setExhausted(true);
         setSelected(false);
-
-        System.out.println("✅ Card played and exhausted: " + card.getName());
     }
 
     public void readyCard() {
         if (card != null) {
             card.ready();
             setExhausted(false);
-            System.out.println("🔄 Card readied: " + card.getName());
         }
     }
 
-    // Getters
     public ArtifactCard getCard() {
         return card;
     }
@@ -187,17 +177,5 @@ public class CardController implements Initializable {
 
     public boolean isExhausted() {
         return card != null && card.isExhausted();
-    }
-
-    public String getCardInfo() {
-        if (isEmpty) {
-            return "Empty slot";
-        }
-
-        return String.format("%s (%s) - %s %s",
-                card.getName(),
-                card.getDimension().getDisplayName(),
-                card.isExhausted() ? "Exhausted" : "Ready",
-                isSelected ? "[Selected]" : "");
     }
 }
