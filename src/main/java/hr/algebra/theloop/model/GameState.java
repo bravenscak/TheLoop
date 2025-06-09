@@ -10,6 +10,8 @@ import java.util.*;
 @Data
 public class GameState implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     @NonNull private Era drFooPosition;
     private int drFooMovesThisCycle;
     private int currentCycle;
@@ -24,6 +26,9 @@ public class GameState implements Serializable {
 
     private GameResources resources;
 
+    private List<PlayerData> playerStates;
+    private int currentPlayerIndex;
+
     public GameState() {
         this.drFooPosition = Era.DAWN_OF_TIME;
         this.drFooMovesThisCycle = 0;
@@ -36,6 +41,53 @@ public class GameState implements Serializable {
         this.totalMissionsCompleted = 0;
 
         this.resources = new GameResources();
+
+        this.playerStates = new ArrayList<>();
+        this.currentPlayerIndex = 0;
+    }
+
+    public void savePlayerState(Player player) {
+        PlayerData playerData = new PlayerData(player);
+
+        playerStates.removeIf(ps -> ps.getName().equals(player.getName()));
+        playerStates.add(playerData);
+
+        System.out.println("🔍 Saved player state: " + playerData);
+    }
+
+    public void saveAllPlayerStates(List<Player> players, int currentPlayerIdx) {
+        this.currentPlayerIndex = currentPlayerIdx;
+        this.playerStates.clear();
+
+        for (Player player : players) {
+            savePlayerState(player);
+        }
+
+        System.out.println("🔍 Saved " + playerStates.size() + " player states");
+    }
+
+    public void restorePlayerState(Player player) {
+        PlayerData playerData = playerStates.stream()
+                .filter(ps -> ps.getName().equals(player.getName()))
+                .findFirst()
+                .orElse(null);
+
+        if (playerData != null) {
+            playerData.restoreToPlayer(player);
+            System.out.println("🔍 Restored player state: " + playerData);
+        } else {
+            System.out.println("⚠️ No saved state found for player: " + player.getName());
+        }
+    }
+
+    public boolean hasPlayerStates() {
+        return playerStates != null && !playerStates.isEmpty();
+    }
+
+    public List<String> getSavedPlayerNames() {
+        return playerStates.stream()
+                .map(PlayerData::getName)
+                .toList();
     }
 
     public int getRifts(Era era) {
@@ -176,8 +228,8 @@ public class GameState implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3]",
+        return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3, Players: %d]",
                 turnNumber, drFooPosition.getDisplayName(), currentCycle,
-                totalMissionsCompleted, resources.getVortexCount());
+                totalMissionsCompleted, resources.getVortexCount(), playerStates.size());
     }
 }

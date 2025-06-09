@@ -3,9 +3,11 @@ package hr.algebra.theloop.controller;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
+import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.thread.ThreadingManager;
 import hr.algebra.theloop.ui.PlayerHandManager;
 import hr.algebra.theloop.ui.UIUpdateManager;
+import hr.algebra.theloop.utils.GameLogger;
 import hr.algebra.theloop.view.CircularBoardView;
 import hr.algebra.theloop.view.SimpleEraView;
 import javafx.fxml.FXML;
@@ -154,7 +156,9 @@ public class MainGameController implements Initializable {
     @FXML
     private void saveGame() {
         if (!gameRunning) return;
+        gameEngine.saveGame();
         actionsHandler.handleSaveGame();
+        GameLogger.gameFlow("Game saved with player states");
     }
 
     @FXML
@@ -166,9 +170,21 @@ public class MainGameController implements Initializable {
             gameEngine = newGameEngine;
             inputHandler = new PlayerInputHandler(gameEngine);
             actionsHandler.updateGameEngine(gameEngine);
+
+            Player currentPlayer = gameEngine.getCurrentPlayer();
+            GameLogger.gameFlow("After load - Player: " + currentPlayer.getName() +
+                    ", Hand size: " + currentPlayer.getHandSize());
+
+            handManager.clearAllSelections();
+
             setupThreading();
             setupEventHandlers();
+
             updateUI();
+
+            GameLogger.gameFlow("Game loaded successfully with player data");
+        } else {
+            GameLogger.error("Failed to load game");
         }
     }
 

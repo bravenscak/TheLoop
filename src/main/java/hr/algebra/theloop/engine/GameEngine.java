@@ -86,6 +86,11 @@ public class GameEngine {
         turnManager.endPlayerTurn(players, gameState);
     }
 
+    public void saveGame() {
+        gameState.saveAllPlayerStates(players, currentPlayerIndex);
+        GameLogger.gameFlow("Player states saved for serialization");
+    }
+
     public boolean spawnDuplicate(Era era) {
         if (duplicatesInBag <= 0) return false;
 
@@ -147,14 +152,7 @@ public class GameEngine {
 
         this.gameState = loadedState;
 
-        if (this.players.isEmpty()) {
-            addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
-            GameLogger.debug("Created default player for loaded game");
-        }
-
-        if (!players.isEmpty()) {
-            getCurrentPlayer().setCurrentPlayer(true);
-        }
+        restorePlayersFromGameState(loadedState);
 
         if (loadedState.isGameOver()) {
             turnManager.setWaitingForPlayerInput(false);
@@ -164,6 +162,46 @@ public class GameEngine {
             GameLogger.debug("Game active - waiting for player input");
         }
 
+        recalculateDuplicatesInBag(loadedState);
+
+        restoreAvailableCards(loadedState);
+
+        logRestoreInfo(loadedState);
+    }
+
+    private void restorePlayersFromGameState(GameState loadedState) {
+        if (loadedState.hasPlayerStates()) {
+            List<String> savedPlayerNames = loadedState.getSavedPlayerNames();
+
+            this.players.clear();
+
+            for (String playerName : savedPlayerNames) {
+                Player player = new Player(playerName, Era.DAWN_OF_TIME); // Temporary era
+                loadedState.restorePlayerState(player);
+                this.players.add(player);
+            }
+
+            this.currentPlayerIndex = loadedState.getCurrentPlayerIndex();
+
+            if (currentPlayerIndex >= players.size()) {
+                currentPlayerIndex = 0;
+            }
+
+            if (!players.isEmpty()) {
+                getCurrentPlayer().setCurrentPlayer(true);
+            }
+
+            GameLogger.gameFlow("Restored " + players.size() + " players from saved states");
+
+        } else {
+            if (this.players.isEmpty()) {
+                addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
+                GameLogger.debug("Created default player - no saved states found");
+            }
+        }
+    }
+
+    private void recalculateDuplicatesInBag(GameState loadedState) {
         this.duplicatesInBag = MAX_DUPLICATES_IN_BAG;
         for (Era era : Era.values()) {
             this.duplicatesInBag -= loadedState.getDuplicateCount(era);
@@ -173,22 +211,34 @@ public class GameEngine {
             this.duplicatesInBag = 0;
             GameLogger.warning("Duplicate count was negative, reset to 0");
         }
+    }
 
+    private void restoreAvailableCards(GameState loadedState) {
         cardAcquisitionManager.clearAllCards();
 
         for (Era era : Era.values()) {
             if (!loadedState.hasVortex(era)) {
-                cardAcquisitionManager.addCardToEra(era, hr.algebra.theloop.cards.CardFactory.createRandomCard());
+                cardAcquisitionManager.addCardToEra(era, CardFactory.createRandomCard());
             }
         }
+    }
 
+    private void logRestoreInfo(GameState loadedState) {
         GameLogger.gameFlow("Game state restored successfully:");
         GameLogger.gameFlow("  Turn: " + loadedState.getTurnNumber());
         GameLogger.gameFlow("  Dr. Foo: " + loadedState.getDrFooPosition().getDisplayName());
         GameLogger.gameFlow("  Cycle: " + loadedState.getCurrentCycle() + "/3");
         GameLogger.gameFlow("  Missions: " + loadedState.getTotalMissionsCompleted() + "/4");
         GameLogger.gameFlow("  Vortexes: " + loadedState.getVortexCount() + "/3");
+        GameLogger.gameFlow("  Players: " + this.players.size());
         GameLogger.gameFlow("  Duplicates in bag: " + this.duplicatesInBag + "/28");
+
+        for (Player player : players) {
+            GameLogger.gameFlow("  Player: " + player.getName() +
+                    " @ " + player.getCurrentEra().getDisplayName() +
+                    " [Hand: " + player.getHandSize() +
+                    ", Deck: " + player.getDeckSize() + "]");
+        }
 
         if (loadedState.isGameOver()) {
             GameLogger.gameFlow("Loaded game was already finished: " + loadedState.getGameResult().getMessage());
