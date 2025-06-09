@@ -17,27 +17,26 @@ import java.util.Random;
 public class MissionManager {
 
     private final Random random;
-    private final List<Era> availableEras;
 
     public MissionManager(Random random) {
         this.random = random;
-        this.availableEras = new ArrayList<>();
-        Collections.addAll(availableEras, Era.values());
     }
 
     public void initializeMissions(GameState gameState) {
+        List<Era> availableEras = new ArrayList<>();
+        Collections.addAll(availableEras, Era.values());
         Collections.shuffle(availableEras, random);
 
         Era firstEra = availableEras.get(0);
         Era secondEra = availableEras.get(1);
 
-        Mission firstMission = createRandomMission(firstEra, gameState);
-        Mission secondMission = createDifferentTypeMission(secondEra, gameState, firstMission.getClass());
+        Mission firstMission = createMissionOfType(0, firstEra);
+        Mission secondMission = createMissionOfType(1, secondEra);
 
         gameState.addMission(firstMission);
         gameState.addMission(secondMission);
 
-        System.out.println("🎯 Random missions initialized:");
+        System.out.println("🎯 Missions initialized (different types):");
         for (Mission mission : gameState.getActiveMissions()) {
             System.out.println("  - " + mission.toString());
         }
@@ -69,7 +68,7 @@ public class MissionManager {
 
     private void addRandomMission(GameState gameState) {
         Era randomEra = getRandomAvailableEra(gameState);
-        Mission newMission = createRandomMission(randomEra, gameState);
+        Mission newMission = createRandomMission(randomEra);
 
         gameState.addMission(newMission);
         System.out.println("🎯 New random mission added: " + newMission.toString());
@@ -91,86 +90,13 @@ public class MissionManager {
         }
     }
 
-    private Mission createRandomMission(Era era, GameState gameState) {
+    private Mission createRandomMission(Era era) {
         int missionType = random.nextInt(3);
-
-        return switch (missionType) {
-            case 0 -> new StabilizeEraMission(era);
-            case 1 -> new EnergySurgeMission(era);
-            case 2 -> new HuntDuplicatesMission();
-            default -> new StabilizeEraMission(era);
-        };
+        return createMissionOfType(missionType, era);
     }
 
-    public void printMissionStats(GameState gameState) {
-        System.out.println("\n=== MISSION STATS ===");
-        System.out.println("Active missions: " + gameState.getActiveMissions().size());
-        System.out.println("Completed missions: " + gameState.getTotalMissionsCompleted() + "/4");
-
-        int stabilize = 0, energy = 0, hunt = 0;
-        for (Mission mission : gameState.getActiveMissions()) {
-            if (mission instanceof StabilizeEraMission) stabilize++;
-            else if (mission instanceof EnergySurgeMission) energy++;
-            else if (mission instanceof HuntDuplicatesMission) hunt++;
-        }
-
-        System.out.println("Mission types - Stabilize: " + stabilize +
-                ", Energy: " + energy + ", Hunt: " + hunt);
-    }
-
-    private boolean hasTooManyOfSameType(GameState gameState, Class<? extends Mission> missionClass) {
-        long count = gameState.getActiveMissions().stream()
-                .filter(mission -> mission.getClass().equals(missionClass))
-                .count();
-        return count >= 2;
-    }
-
-    private Mission createDifferentTypeMission(Era era, GameState gameState, Class<? extends Mission> existingType) {
-        List<Integer> availableTypes = new ArrayList<>();
-
-        if (!existingType.equals(StabilizeEraMission.class)) {
-            availableTypes.add(0);
-        }
-        if (!existingType.equals(EnergySurgeMission.class)) {
-            availableTypes.add(1);
-        }
-        if (!existingType.equals(HuntDuplicatesMission.class)) {
-            availableTypes.add(2);
-        }
-
-        if (availableTypes.isEmpty()) {
-            return createRandomMission(era, gameState);
-        }
-
-        int chosenType = availableTypes.get(random.nextInt(availableTypes.size()));
-
-        return switch (chosenType) {
-            case 0 -> new StabilizeEraMission(era);
-            case 1 -> new EnergySurgeMission(era);
-            case 2 -> new HuntDuplicatesMission();
-            default -> new StabilizeEraMission(era);
-        };
-    }
-    private Mission createBalancedMission(Era era, GameState gameState) {
-        List<Integer> availableTypes = new ArrayList<>();
-
-        if (!hasTooManyOfSameType(gameState, StabilizeEraMission.class)) {
-            availableTypes.add(0);
-        }
-        if (!hasTooManyOfSameType(gameState, EnergySurgeMission.class)) {
-            availableTypes.add(1);
-        }
-        if (!hasTooManyOfSameType(gameState, HuntDuplicatesMission.class)) {
-            availableTypes.add(2);
-        }
-
-        if (availableTypes.isEmpty()) {
-            availableTypes.add(random.nextInt(3));
-        }
-
-        int chosenType = availableTypes.get(random.nextInt(availableTypes.size()));
-
-        return switch (chosenType) {
+    private Mission createMissionOfType(int type, Era era) {
+        return switch (type) {
             case 0 -> new StabilizeEraMission(era);
             case 1 -> new EnergySurgeMission(era);
             case 2 -> new HuntDuplicatesMission();

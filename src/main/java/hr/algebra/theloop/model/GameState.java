@@ -72,9 +72,14 @@ public class GameState implements Serializable {
 
     public void createVortex(Era era) {
         resources.createVortex(era);
+
         activeMissions.removeIf(mission -> era.equals(mission.getAssignedEra()));
 
         System.out.println("⚠️ VORTEX created at " + era.getDisplayName() + "!");
+
+        if (getVortexCount() >= 3) {
+            endGame(GameResult.DEFEAT_VORTEXES);
+        }
     }
 
     public int getVortexCount() {
@@ -110,15 +115,16 @@ public class GameState implements Serializable {
         currentCycle++;
         drFooMovesThisCycle = 0;
 
+        System.out.println("🔄 Dr. Foo completed cycle " + (currentCycle - 1));
+
         if (currentCycle > 3) {
             endGame(GameResult.DEFEAT_CYCLES);
         }
-
-        System.out.println("🔄 Dr. Foo completed cycle " + (currentCycle - 1));
     }
 
     public void addMission(Mission mission) {
         activeMissions.add(mission);
+        System.out.println("🎯 New mission: " + mission.toString());
     }
 
     public void completeMission(Mission mission) {
@@ -145,6 +151,7 @@ public class GameState implements Serializable {
     public void endGame(GameResult result) {
         this.gameOver = true;
         this.gameResult = result;
+        System.out.println("🏁 GAME END: " + result.getMessage());
     }
 
     public void nextTurn() {

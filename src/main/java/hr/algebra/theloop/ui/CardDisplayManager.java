@@ -97,7 +97,8 @@ public class CardDisplayManager {
 
         if (cardBackground != null) {
             if (exhausted) {
-                cardBackground.setOpacity(0.5);
+                cardBackground.setOpacity(0.3); // More obvious
+                cardBackground.setFill(javafx.scene.paint.Color.GRAY);
                 cardBackground.getStyleClass().add("card-exhausted");
             } else {
                 cardBackground.setOpacity(1.0);
@@ -106,10 +107,10 @@ public class CardDisplayManager {
         }
 
         if (cardNameText != null) {
-            cardNameText.setOpacity(exhausted ? 0.6 : 1.0);
+            cardNameText.setOpacity(exhausted ? 0.4 : 1.0);
         }
         if (descriptionText != null) {
-            descriptionText.setOpacity(exhausted ? 0.6 : 1.0);
+            descriptionText.setOpacity(exhausted ? 0.4 : 1.0);
         }
     }
 }

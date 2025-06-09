@@ -17,39 +17,54 @@ public class PlayerInputHandler {
     }
 
     public boolean selectCard(CardController cardController, int cardIndex) {
+        System.out.println("🔧 DEBUG: selectCard called for index " + cardIndex);
+
         if (!canAcceptInput()) {
+            System.out.println("❌ DEBUG: Cannot accept input in selectCard!");
             return false;
         }
 
         if (cardController.isEmpty() || !cardController.canPlayCard()) {
+            System.out.println("❌ DEBUG: Card is empty or cannot play!");
             return false;
         }
 
         if (selectedCard != null) {
+            System.out.println("🔧 DEBUG: Clearing previous selection: " + selectedCard);
             selectedCard.setSelected(false);
         }
 
         if (selectedCard == cardController) {
+            System.out.println("🔧 DEBUG: Deselecting same card");
             clearSelection();
         } else {
             selectedCard = cardController;
             selectedCardIndex = cardIndex;
             cardController.setSelected(true);
+            System.out.println("🔧 DEBUG: Selected card " + cardIndex + ", controller: " + cardController);
         }
 
         return true;
     }
 
     public boolean handleEraClick(Era era) {
+        System.out.println("🔧 DEBUG: handleEraClick called for " + era);
+
         if (!canAcceptInput()) {
+            System.out.println("❌ DEBUG: Cannot accept input!");
             return false;
         }
 
         Player currentPlayer = gameEngine.getCurrentPlayer();
+        System.out.println("🔧 DEBUG: hasSelectedCard() = " + hasSelectedCard());
+        System.out.println("🔧 DEBUG: selectedCard = " + selectedCard);
+        System.out.println("🔧 DEBUG: selectedCardIndex = " + selectedCardIndex);
 
         if (hasSelectedCard()) {
+            System.out.println("🔧 DEBUG: Attempting to play card on era");
             return playCardOnEra(currentPlayer, selectedCardIndex, era);
         } else {
+            System.out.println("🔧 DEBUG: Attempting movement");
             return attemptMovement(currentPlayer, era);
         }
     }

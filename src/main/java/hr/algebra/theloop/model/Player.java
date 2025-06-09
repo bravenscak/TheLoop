@@ -10,19 +10,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 @Data
 public class Player implements Serializable {
 
     @NonNull private String name;
     @NonNull private Era currentEra;
-    private String agentIcon; // For visual representation
+    private String agentIcon;
 
     private List<ArtifactCard> hand;
     private List<ArtifactCard> deck;
     private List<ArtifactCard> discardPile;
 
-    private boolean batteriesFull; // Free movement once per turn
+    private boolean batteriesFull;
     private int loopsPerformedThisTurn;
     private boolean isCurrentPlayer;
 
@@ -68,7 +67,7 @@ public class Player implements Serializable {
 
     public void rechargeBatteries() {
         this.batteriesFull = true;
-        this.loopsPerformedThisTurn = 0; // Reset LOOP counter
+        this.loopsPerformedThisTurn = 0;
     }
 
     public void addCardToHand(ArtifactCard card) {
@@ -83,34 +82,27 @@ public class Player implements Serializable {
         deck.add(card);
     }
 
-    public void playCard(ArtifactCard card) {
-        if (hand.remove(card)) {
-            discardPile.add(card);
-            cardsPlayed++;
-        }
-    }
-
-    public void discardCard(ArtifactCard card) {
-        hand.remove(card);
-        discardPile.add(card);
-    }
-
     public void drawCard() {
+        System.out.println("🔧 DEBUG: drawCard() called");
+        System.out.println("🔧 DEBUG: deck size: " + deck.size() + ", discard size: " + discardPile.size() + ", hand size: " + hand.size());
+
         if (deck.isEmpty() && !discardPile.isEmpty()) {
+            System.out.println("🔄 DEBUG: Reshuffling discard pile into deck");
             deck.addAll(discardPile);
             discardPile.clear();
             java.util.Collections.shuffle(deck);
+            System.out.println("🔧 DEBUG: After reshuffle - deck size: " + deck.size());
         }
 
         if (!deck.isEmpty() && hand.size() < 3) {
             ArtifactCard card = deck.remove(0);
+            card.ready(); // Ensure card is ready
             hand.add(card);
-        }
-    }
-
-    public void fillHandToThree() {
-        while (hand.size() < 3 && (!deck.isEmpty() || !discardPile.isEmpty())) {
-            drawCard();
+            System.out.println("📋 DEBUG: Drew: " + card.getName() + " (ready: " + !card.isExhausted() + ")");
+        } else if (deck.isEmpty() && discardPile.isEmpty()) {
+            System.out.println("❌ DEBUG: No cards available to draw!");
+        } else if (hand.size() >= 3) {
+            System.out.println("⚠️ DEBUG: Hand already full (" + hand.size() + "/3)");
         }
     }
 
@@ -130,39 +122,6 @@ public class Player implements Serializable {
         return gameState.getEnergy(currentEra) >= loopCost;
     }
 
-    public void performLoop(CardDimension dimension, GameState gameState) {
-        if (!canPerformLoop(dimension, gameState)) {
-            System.out.println("❌ Cannot perform LOOP!");
-            return;
-        }
-
-        int loopCost = loopsPerformedThisTurn + 1;
-
-        gameState.removeEnergy(currentEra, loopCost);
-        energySpent += loopCost;
-
-        int readiedCards = 0;
-        for (ArtifactCard card : hand) {
-            if (card.getDimension() == dimension && card.isExhausted()) {
-                card.ready();
-                readiedCards++;
-            }
-        }
-
-        loopsPerformedThisTurn++;
-
-        System.out.println("🔄 LOOP performed! Readied " + readiedCards +
-                " " + dimension.getDisplayName() + " cards for " + loopCost + " energy");
-    }
-
-    public int getLoopsPerformedThisTurn() {
-        return loopsPerformedThisTurn;
-    }
-
-    public void setLoopsPerformedThisTurn(int loops) {
-        this.loopsPerformedThisTurn = loops;
-    }
-
     public List<ArtifactCard> getReadyCards() {
         return hand.stream()
                 .filter(card -> !card.isExhausted())
@@ -175,15 +134,15 @@ public class Player implements Serializable {
                 .collect(Collectors.toList());
     }
 
-    public List<ArtifactCard> getCardsByDimension(CardDimension dimension) {
-        return hand.stream()
-                .filter(card -> card.getDimension() == dimension)
-                .collect(Collectors.toList());
-    }
-
     public boolean hasPlayableCards(GameState gameState) {
         return hand.stream()
                 .anyMatch(card -> !card.isExhausted() && card.canExecute(gameState, this));
+    }
+
+    public List<ArtifactCard> getPlayableCards(GameState gameState) {
+        return hand.stream()
+                .filter(card -> !card.isExhausted() && card.canExecute(gameState, this))
+                .collect(Collectors.toList());
     }
 
     public int getHandSize() {
@@ -198,20 +157,12 @@ public class Player implements Serializable {
         return discardPile.size();
     }
 
-    public int getTotalCards() {
-        return hand.size() + deck.size() + discardPile.size();
-    }
-
     public void incrementRiftsRemoved(int amount) {
         this.riftsRemoved += amount;
     }
 
     public void incrementMissionsContributed() {
         this.missionsContributed++;
-    }
-
-    public double getEfficiencyRatio() {
-        return cardsPlayed > 0 ? (double) missionsContributed / cardsPlayed : 0.0;
     }
 
     @Override

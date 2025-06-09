@@ -10,46 +10,34 @@ import java.util.Random;
 public class DrFooAI {
 
     private final Random random;
+    private final GameEngine gameEngine;
 
-    public DrFooAI(Random random) {
+    public DrFooAI(Random random, GameEngine gameEngine) {
         this.random = random;
+        this.gameEngine = gameEngine;
     }
 
     public void executeDrFooPhase(GameState gameState) {
         System.out.println("\n--- DR. FOO PHASE ---");
 
         spawnDuplicates(gameState);
-
-        Era oldPosition = gameState.getDrFooPosition();
-        gameState.moveDrFoo();
-        Era newPosition = gameState.getDrFooPosition();
-
-        System.out.println("Dr. Foo moves: " + oldPosition.getDisplayName() + " → " + newPosition.getDisplayName());
-
-        int duplicatesHere = gameState.getDuplicateCount(newPosition);
-        int totalRifts = 2 + duplicatesHere;
-
-        System.out.println("Dropping " + totalRifts + " rifts into cube tower...");
-
-        simulateCubeTower(gameState, newPosition, totalRifts);
-
+        moveDrFoo(gameState);
+        dropRifts(gameState);
         ageDuplicates(gameState);
-
         checkDefeatConditions(gameState);
     }
 
     private void spawnDuplicates(GameState gameState) {
-        Era randomEra = getRandomEra();
-
         int duplicatesToSpawn = calculateDuplicatesToSpawn(gameState);
 
         for (int i = 0; i < duplicatesToSpawn; i++) {
-            Era spawnEra = getRandomEra();
-            Duplicate newDuplicate = new Duplicate(spawnEra);
-            gameState.addDuplicate(spawnEra, newDuplicate);
+            Era randomEra = getRandomEra();
 
-            System.out.println("🔵 Duplicate spawned at " + spawnEra.getDisplayName() +
-                    " (destroy at " + newDuplicate.getDestroyEra().getDisplayName() + ")");
+            boolean spawned = gameEngine.spawnDuplicate(randomEra);
+            if (!spawned) {
+                System.out.println("🚫 Cannot spawn more duplicates - bag is empty!");
+                break;
+            }
         }
     }
 
@@ -70,17 +58,21 @@ public class DrFooAI {
         return baseSpawn;
     }
 
-    private void ageDuplicates(GameState gameState) {
-        for (Era era : Era.values()) {
-            for (Duplicate duplicate : gameState.getDuplicatesAt(era)) {
-                duplicate.ageTurn();
-            }
-        }
+    private void moveDrFoo(GameState gameState) {
+        Era oldPosition = gameState.getDrFooPosition();
+        gameState.moveDrFoo();
+        Era newPosition = gameState.getDrFooPosition();
+
+        System.out.println("🤖 Dr. Foo moves: " + oldPosition.getDisplayName() + " → " + newPosition.getDisplayName());
     }
 
-    private Era getRandomEra() {
-        Era[] eras = Era.values();
-        return eras[random.nextInt(eras.length)];
+    private void dropRifts(GameState gameState) {
+        Era drFooEra = gameState.getDrFooPosition();
+        int duplicatesHere = gameState.getDuplicateCount(drFooEra);
+        int totalRifts = 2 + duplicatesHere;
+
+        System.out.println("🎲 Dropping " + totalRifts + " rifts (2 base + " + duplicatesHere + " duplicates)");
+        simulateCubeTower(gameState, drFooEra, totalRifts);
     }
 
     private void simulateCubeTower(GameState gameState, Era drFooEra, int riftsToAdd) {
@@ -90,7 +82,7 @@ public class DrFooAI {
                 drFooEra.getNext()
         };
 
-        System.out.println("🎲 Cube tower targets: " +
+        System.out.println("🎯 Cube tower targets: " +
                 possibleTargets[0].getDisplayName() + ", " +
                 possibleTargets[1].getDisplayName() + ", " +
                 possibleTargets[2].getDisplayName());
@@ -113,10 +105,18 @@ public class DrFooAI {
         }
     }
 
+    private void ageDuplicates(GameState gameState) {
+        for (Era era : Era.values()) {
+            for (Duplicate duplicate : gameState.getDuplicatesAt(era)) {
+                duplicate.ageTurn();
+            }
+        }
+    }
+
     private void checkDefeatConditions(GameState gameState) {
-        if (gameState.getVortexCount() >= 4) {
+        if (gameState.getVortexCount() >= 3) {
             gameState.endGame(GameResult.DEFEAT_VORTEXES);
-            System.out.println("💀 DEFEAT: 4 vortexes created!");
+            System.out.println("💀 DEFEAT: 3+ vortexes created!");
             return;
         }
 
@@ -125,5 +125,10 @@ public class DrFooAI {
             System.out.println("💀 DEFEAT: Dr. Foo completed 3 cycles!");
             return;
         }
+    }
+
+    private Era getRandomEra() {
+        Era[] eras = Era.values();
+        return eras[random.nextInt(eras.length)];
     }
 }

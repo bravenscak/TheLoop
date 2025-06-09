@@ -15,7 +15,7 @@ public class StabilizeEraMission extends Mission {
 
     @Override
     public boolean checkProgress(GameState gameState, Player player, String actionType) {
-        if (gameState.getRifts(assignedEra) == 0 && !completed) {
+        if ("RiftCard".equals(actionType) && gameState.getRifts(assignedEra) == 0 && !completed) {
             System.out.println("🎯 Era " + assignedEra.getDisplayName() + " stabilized!");
             addProgress(1);
             return true;
