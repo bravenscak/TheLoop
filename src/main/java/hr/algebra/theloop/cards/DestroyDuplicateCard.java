@@ -7,10 +7,10 @@ import hr.algebra.theloop.model.Player;
 
 import java.util.List;
 
-public class DestroyDuplicateCard extends ArtifactCard {
+class DestroyDuplicateCard extends ArtifactCard {
 
-    public DestroyDuplicateCard(String name, Era originalEra) {
-        super(name, "Destroy 1 duplicate on current era", originalEra, CardDimension.STRIPE);
+    public DestroyDuplicateCard(String name) {
+        super(name, "Destroy 1 duplicate on current era", CardDimension.STRIPE);
     }
 
     @Override
@@ -33,5 +33,9 @@ public class DestroyDuplicateCard extends ArtifactCard {
     public boolean canExecute(GameState gameState, Player player) {
         Era playerEra = player.getCurrentEra();
         return !isExhausted() && !gameState.getDuplicatesAt(playerEra).isEmpty();
+    }
+
+    public static DestroyDuplicateCard createBasicDestroy() {
+        return new DestroyDuplicateCard("Destroy Duplicate");
     }
 }

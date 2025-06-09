@@ -34,7 +34,6 @@ public class CardDisplayManager {
         dimensionIcon.setText(card.getDimension().getIcon());
         dimensionText.setText(card.getDimension().getDisplayName());
         descriptionText.setText(card.getDescription());
-        originalEraText.setText(card.getOriginalEra().getDisplayName());
 
         updateCardStyle(card);
         setExhausted(card.isExhausted());

@@ -5,23 +5,100 @@ import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
 
 public class EnergyCard extends ArtifactCard {
-    private final int energyAmount;
 
-    public EnergyCard(String name, Era originalEra, int energyAmount) {
-        super(name, "Add " + energyAmount + " energy to current era", originalEra, CardDimension.STAR);
+    public enum EnergyEffect {
+        ADD_TO_CURRENT,
+        ADD_TO_ADJACENT,
+        STEAL_FROM_DR_FOO
+    }
+
+    private final int energyAmount;
+    private final EnergyEffect effect;
+
+    public EnergyCard(String name, int energyAmount) {
+        super(name, "Add " + energyAmount + " energy to current era", CardDimension.STAR);
         this.energyAmount = energyAmount;
+        this.effect = EnergyEffect.ADD_TO_CURRENT;
+    }
+
+    public EnergyCard(String name, int energyAmount, EnergyEffect effect) {
+        super(name, generateDescription(energyAmount, effect), CardDimension.STAR);
+        this.energyAmount = energyAmount;
+        this.effect = effect;
+    }
+
+    private static String generateDescription(int amount, EnergyEffect effect) {
+        return switch (effect) {
+            case ADD_TO_CURRENT -> "Add " + amount + " energy to current era";
+            case ADD_TO_ADJACENT -> "Add " + amount + " energy to adjacent eras";
+            case STEAL_FROM_DR_FOO -> "Steal " + amount + " energy from Dr. Foo's era";
+        };
     }
 
     @Override
     public void execute(GameState gameState, Player player) {
         Era playerEra = player.getCurrentEra();
-        gameState.addEnergy(playerEra, energyAmount);
+
+        switch (effect) {
+            case ADD_TO_CURRENT -> {
+                gameState.addEnergy(playerEra, energyAmount);
+                System.out.println("⚡ " + getName() + ": Added " + energyAmount + " energy to " + playerEra.getDisplayName());
+            }
+
+            case ADD_TO_ADJACENT -> {
+                Era prevEra = playerEra.getPrevious();
+                Era nextEra = playerEra.getNext();
+                gameState.addEnergy(prevEra, energyAmount);
+                gameState.addEnergy(nextEra, energyAmount);
+                System.out.println("⚡ " + getName() + ": Added " + energyAmount + " energy to " +
+                        prevEra.getDisplayName() + " and " + nextEra.getDisplayName());
+            }
+
+            case STEAL_FROM_DR_FOO -> {
+                Era drFooEra = gameState.getDrFooPosition();
+                int availableEnergy = gameState.getEnergy(drFooEra);
+                int actualStolen = Math.min(energyAmount, availableEnergy);
+
+                if (actualStolen > 0) {
+                    gameState.removeEnergy(drFooEra, actualStolen);
+                    gameState.addEnergy(playerEra, actualStolen);
+                    System.out.println("⚡ " + getName() + ": Stole " + actualStolen + " energy from Dr. Foo's era");
+                } else {
+                    System.out.println("⚡ " + getName() + ": No energy to steal from Dr. Foo's era");
+                }
+            }
+        }
+
         exhaust();
-        System.out.println("⚡ " + getName() + ": Added " + energyAmount + " energy to " + playerEra.getDisplayName());
     }
 
     @Override
     public boolean canExecute(GameState gameState, Player player) {
-        return !isExhausted();
+        if (isExhausted()) {
+            return false;
+        }
+
+        if (effect == EnergyEffect.STEAL_FROM_DR_FOO) {
+            Era drFooEra = gameState.getDrFooPosition();
+            return gameState.getEnergy(drFooEra) > 0;
+        }
+
+        return true;
+    }
+
+    public static EnergyCard createBasicEnergy() {
+        return new EnergyCard("Basic Energy", 1);
+    }
+
+    public static EnergyCard createEnergyBoost() {
+        return new EnergyCard("Energy Boost", 3);
+    }
+
+    public static EnergyCard createAdjacentEnergy() {
+        return new EnergyCard("Adjacent Energy", 1, EnergyEffect.ADD_TO_ADJACENT);
+    }
+
+    public static EnergyCard createEnergySiphon() {
+        return new EnergyCard("Energy Siphon", 2, EnergyEffect.STEAL_FROM_DR_FOO);
     }
 }

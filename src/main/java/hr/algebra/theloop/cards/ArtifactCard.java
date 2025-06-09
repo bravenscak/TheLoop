@@ -1,6 +1,5 @@
 package hr.algebra.theloop.cards;
 
-import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
 import lombok.Data;
@@ -8,7 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
 import java.io.Serializable;
-
 
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -18,17 +16,15 @@ public abstract class ArtifactCard implements Serializable {
     @NonNull protected String name;
 
     @NonNull protected String description;
-    @NonNull protected Era originalEra;
     @NonNull protected CardDimension dimension;
 
     protected boolean exhausted;
     protected String flavorText;
     protected int cost;
 
-    public ArtifactCard(String name, String description, Era originalEra, CardDimension dimension) {
+    public ArtifactCard(String name, String description, CardDimension dimension) {
         this.name = name;
         this.description = description;
-        this.originalEra = originalEra;
         this.dimension = dimension;
         this.exhausted = false;
         this.cost = 0;
@@ -62,7 +58,6 @@ public abstract class ArtifactCard implements Serializable {
         StringBuilder info = new StringBuilder();
         info.append("Name: ").append(name).append("\n");
         info.append("Dimension: ").append(dimension.getDisplayName()).append("\n");
-        info.append("Original Era: ").append(originalEra.getDisplayName()).append("\n");
         info.append("Description: ").append(description).append("\n");
 
         if (cost > 0) {

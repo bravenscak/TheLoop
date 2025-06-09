@@ -1,5 +1,6 @@
 package hr.algebra.theloop.view;
 
+import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import javafx.animation.RotateTransition;
 import javafx.scene.effect.DropShadow;
@@ -9,12 +10,13 @@ import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CircularBoardView extends Pane {
 
-    private static final double BOARD_WIDTH = 450;
-    private static final double BOARD_HEIGHT = 350;
+    private static final double BOARD_WIDTH = 600;
+    private static final double BOARD_HEIGHT = 500;
     private static final double CENTER_X = BOARD_WIDTH / 2;
     private static final double CENTER_Y = BOARD_HEIGHT / 2;
 
@@ -36,9 +38,9 @@ public class CircularBoardView extends Pane {
     }
 
     private void createSimpleEras() {
-        double eraWidth = 80;
-        double eraHeight = 60;
-        double radius = 120;
+        double eraWidth = 120;
+        double eraHeight = 90;
+        double radius = 180;
 
         Era[] eras = Era.values();
 
@@ -76,14 +78,12 @@ public class CircularBoardView extends Pane {
         getChildren().add(drFooMachine);
     }
 
-    public void updateEra(Era era, int rifts, int energy, boolean hasVortex, boolean playerPresent) {
-        updateEra(era, rifts, energy, 0, hasVortex, playerPresent); // Default 0 duplicates
-    }
-
-    public void updateEra(Era era, int rifts, int energy, int duplicates, boolean hasVortex, boolean playerPresent) {
+    public void updateEra(Era era, int rifts, int energy, List<Duplicate> duplicates,
+                          boolean hasVortex, boolean playerPresent) {
         SimpleEraView eraView = eraViews.get(era);
         if (eraView != null) {
-            eraView.updateResources(rifts, energy, duplicates, hasVortex, playerPresent);
+            int duplicateCount = duplicates != null ? duplicates.size() : 0;
+            eraView.updateResources(rifts, energy, duplicateCount, duplicates, hasVortex, playerPresent);
         }
     }
 
@@ -100,5 +100,10 @@ public class CircularBoardView extends Pane {
 
     public SimpleEraView getEraView(Era era) {
         return eraViews.get(era);
+    }
+
+    public List<Duplicate> getDuplicatesAt(Era era) {
+        SimpleEraView eraView = eraViews.get(era);
+        return eraView != null ? eraView.getCurrentDuplicates() : null;
     }
 }

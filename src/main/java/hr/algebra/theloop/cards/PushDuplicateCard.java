@@ -9,8 +9,8 @@ import java.util.List;
 
 public class PushDuplicateCard extends ArtifactCard {
 
-    public PushDuplicateCard(String name, Era originalEra) {
-        super(name, "Push 1 duplicate to adjacent era", originalEra, CardDimension.STRIPE);
+    public PushDuplicateCard(String name) {
+        super(name, "Push 1 duplicate to adjacent era", CardDimension.STRIPE);
     }
 
     @Override
@@ -45,5 +45,9 @@ public class PushDuplicateCard extends ArtifactCard {
     public boolean canExecute(GameState gameState, Player player) {
         Era playerEra = player.getCurrentEra();
         return !isExhausted() && !gameState.getDuplicatesAt(playerEra).isEmpty();
+    }
+
+    public static PushDuplicateCard createBasicPush() {
+        return new PushDuplicateCard("Push Duplicate");
     }
 }

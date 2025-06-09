@@ -33,38 +33,39 @@
 .era-name {
     -fx-fill: white;
     -fx-font-weight: bold;
-    -fx-font-size: 12px;
+    -fx-font-size: 14px;
     -fx-effect: dropshadow(gaussian, black, 2, 1.0, 1, 1);
 }
 
 .resource-icon {
-    -fx-font-size: 14px;
+    -fx-font-size: 16px;
 }
 
 .resource-count {
     -fx-fill: white;
     -fx-font-weight: bold;
-    -fx-font-size: 12px;
+    -fx-font-size: 14px;
 }
 
 .vortex-warning {
     -fx-fill: #ff4444;
     -fx-font-weight: bold;
-    -fx-font-size: 10px;
+    -fx-font-size: 12px;
 }
 
 .player-indicator {
-    -fx-font-size: 16px;
+    -fx-font-size: 18px;
 }
 
 .card-background {
+    -fx-fill: #f8f9fa;
     -fx-stroke: #333;
-    -fx-stroke-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 3, 0.3, 1, 1);
+    -fx-stroke-width: 2;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 4, 0.3, 1, 1);
 }
 
 .card-background:hover {
-    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.5), 5, 0.5, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(255,255,255,0.6), 6, 0.5, 0, 0);
     -fx-cursor: hand;
 }
 
@@ -87,11 +88,44 @@
     -fx-effect: dropshadow(gaussian, #00ff00, 10, 0.8, 0, 0) !important;
 }
 
-
 .card-background.card-exhausted {
-    -fx-fill: #555555;
-    -fx-stroke: #777777;
     -fx-opacity: 0.6;
+    -fx-fill: #666666;
+    -fx-stroke: #777777;
+}
+
+.card-empty .card-background {
+    -fx-fill: #2c3e50;
+    -fx-stroke: #555;
+    -fx-stroke-width: 2;
+    -fx-stroke-dash-array: 5 5;
+}
+
+.card-name {
+    -fx-fill: #212529;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.dimension-icon {
+    -fx-font-size: 16px;
+}
+
+.dimension-text {
+    -fx-fill: #495057;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.card-description {
+    -fx-fill: #495057;
+    -fx-font-size: 11px;
+}
+
+.original-era {
+    -fx-fill: #6c757d;
+    -fx-font-size: 9px;
+    -fx-font-style: italic;
 }
 
 .card-exhausted .card-name {
@@ -104,46 +138,6 @@
 
 .card-exhausted .dimension-text {
     -fx-fill: #888888;
-}
-
-StackPane .card-background.card-selected {
-    -fx-stroke: #00ff00;
-    -fx-stroke-width: 5;
-    -fx-effect: dropshadow(gaussian, #00ff00, 12, 1.0, 0, 0);
-}
-
-.card-empty .card-background {
-    -fx-fill: #2c3e50;
-    -fx-stroke: #555;
-    -fx-stroke-width: 2;
-    -fx-stroke-dash-array: 5 5;
-}
-
-.card-name {
-    -fx-fill: #333;
-    -fx-font-weight: bold;
-    -fx-font-size: 11px;
-}
-
-.dimension-icon {
-    -fx-font-size: 14px;
-}
-
-.dimension-text {
-    -fx-fill: #555;
-    -fx-font-size: 8px;
-    -fx-font-weight: bold;
-}
-
-.card-description {
-    -fx-fill: #444;
-    -fx-font-size: 9px;
-}
-
-.original-era {
-    -fx-fill: #666;
-    -fx-font-size: 8px;
-    -fx-font-style: italic;
 }
 
 .player-area {
@@ -162,12 +156,12 @@ StackPane .card-background.card-selected {
 .player-name {
     -fx-text-fill: #ecf0f1;
     -fx-font-weight: bold;
-    -fx-font-size: 14px;
+    -fx-font-size: 16px;
 }
 
 .player-location {
     -fx-text-fill: #bdc3c7;
-    -fx-font-size: 12px;
+    -fx-font-size: 14px;
 }
 
 .game-status {
@@ -189,7 +183,33 @@ StackPane .card-background.card-selected {
 .panel-title {
     -fx-text-fill: #ecf0f1;
     -fx-font-weight: bold;
-    -fx-font-size: 14px;
+    -fx-font-size: 16px;
+}
+
+.list-view {
+    -fx-background-color: #2c3e50;
+    -fx-border-color: #34495e;
+    -fx-border-width: 1px;
+}
+
+.list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #ecf0f1;
+    -fx-font-size: 12px;
+    -fx-padding: 4 8;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #34495e;
+}
+
+.list-cell:filled:selected {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.list-cell:empty {
+    -fx-background-color: transparent;
 }
 
 .button {
@@ -198,6 +218,7 @@ StackPane .card-background.card-selected {
     -fx-font-weight: bold;
     -fx-background-radius: 5;
     -fx-padding: 8 16;
+    -fx-font-size: 12px;
 }
 
 .button:hover {

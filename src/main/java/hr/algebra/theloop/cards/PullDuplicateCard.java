@@ -7,10 +7,10 @@ import hr.algebra.theloop.model.Player;
 
 import java.util.List;
 
-public class PullDuplicateCard extends ArtifactCard {
+class PullDuplicateCard extends ArtifactCard {
 
-    public PullDuplicateCard(String name, Era originalEra) {
-        super(name, "Pull 1 duplicate from adjacent era", originalEra, CardDimension.STRIPE);
+    public PullDuplicateCard(String name) {
+        super(name, "Pull 1 duplicate from adjacent era", CardDimension.STRIPE);
     }
 
     @Override
@@ -55,5 +55,9 @@ public class PullDuplicateCard extends ArtifactCard {
         Era playerEra = player.getCurrentEra();
         return !gameState.getDuplicatesAt(playerEra.getNext()).isEmpty() ||
                 !gameState.getDuplicatesAt(playerEra.getPrevious()).isEmpty();
+    }
+
+    public static PullDuplicateCard createBasicPull() {
+        return new PullDuplicateCard("Pull Duplicate");
     }
 }

@@ -4,6 +4,7 @@ import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.missions.Mission;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.view.CircularBoardView;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -67,12 +68,13 @@ public class GameUIManager {
 
         for (Era era : Era.values()) {
             boolean playerHere = era.equals(currentPlayer.getCurrentEra());
-            int duplicateCount = state.getDuplicateCount(era);
+            List<Duplicate> duplicatesHere = state.getDuplicatesAt(era);
 
+            // Use the new enhanced updateEra method with full duplicate info
             circularBoard.updateEra(era,
                     state.getRifts(era),
                     state.getEnergy(era),
-                    duplicateCount,
+                    duplicatesHere,  // Pass the actual duplicate list
                     state.hasVortex(era),
                     playerHere);
         }
@@ -129,5 +131,29 @@ public class GameUIManager {
         updatePlayerInfo(currentPlayer);
         updateMissions(state);
         updateButtons(gameOver, waitingForPlayerInput);
+    }
+
+    // NEW: Helper method to get duplicate info for debugging/console output
+    public void printDuplicateStatus(GameState state) {
+        System.out.println("\n=== DUPLICATE STATUS ===");
+        int totalDuplicates = 0;
+
+        for (Era era : Era.values()) {
+            List<Duplicate> duplicatesHere = state.getDuplicatesAt(era);
+            if (!duplicatesHere.isEmpty()) {
+                System.out.println(era.getDisplayName() + ":");
+                for (Duplicate dup : duplicatesHere) {
+                    System.out.println("  • " + dup.getDisplayName() +
+                            " → destroy at " + dup.getDestroyEra().getDisplayName());
+                    totalDuplicates++;
+                }
+            }
+        }
+
+        if (totalDuplicates == 0) {
+            System.out.println("No duplicates on board");
+        } else {
+            System.out.println("Total duplicates: " + totalDuplicates);
+        }
     }
 }

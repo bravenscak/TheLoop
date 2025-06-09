@@ -11,7 +11,7 @@ public class TheLoopApplication extends Application {
     public void start(Stage primaryStage) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainGame.fxml"));
-            Scene scene = new Scene(loader.load(), 750,750);
+            Scene scene = new Scene(loader.load(), 1000,1000);
 
             scene.getStylesheets().add(getClass().getResource("/css/theloop-theme.css").toExternalForm());
 

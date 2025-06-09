@@ -23,7 +23,7 @@
     </center>
 
     <bottom>
-        <VBox styleClass="player-area" prefHeight="200">
+        <VBox styleClass="player-area" prefHeight="280">
             <HBox fx:id="playerHandBox" alignment="CENTER" spacing="8" styleClass="player-hand" prefHeight="120">
                 <fx:include fx:id="card1" source="CardComponent.fxml" />
                 <fx:include fx:id="card2" source="CardComponent.fxml" />
