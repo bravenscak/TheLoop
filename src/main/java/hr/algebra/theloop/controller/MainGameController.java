@@ -5,6 +5,7 @@ import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.ui.PlayerHandManager;
 import hr.algebra.theloop.ui.UIUpdateManager;
+import hr.algebra.theloop.utils.GameLogger;
 import hr.algebra.theloop.view.CircularBoardView;
 import hr.algebra.theloop.view.SimpleEraView;
 import javafx.fxml.FXML;
@@ -13,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.HBox;
+import hr.algebra.theloop.thread.ThreadingManager;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -46,11 +48,14 @@ public class MainGameController implements Initializable {
     private PlayerInputHandler inputHandler;
     private PlayerHandManager handManager;
     private boolean gameRunning;
+    private ThreadingManager threadingManager;
+
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setupGame();
         setupManagers();
+        setupThreading();
         setupEventHandlers();
         updateUI();
     }
@@ -72,6 +77,11 @@ public class MainGameController implements Initializable {
 
         inputHandler = new PlayerInputHandler(gameEngine);
         handManager = new PlayerHandManager(card1Controller, card2Controller, card3Controller);
+    }
+
+    private void setupThreading() {
+        threadingManager = new ThreadingManager(gameEngine);
+        threadingManager.start();
     }
 
     private void setupEventHandlers() {
@@ -136,7 +146,10 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void saveGame() {
-        System.out.println("💾 Save game - TODO: Implement serialization");
+        if (threadingManager != null) {
+            threadingManager.forceAutoSave();
+            GameLogger.gameFlow("Manual save triggered");
+        }
     }
 
     @FXML
@@ -146,6 +159,10 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void newGame() {
+        if (threadingManager != null) {
+            threadingManager.stop();
+        }
+
         if (inputHandler != null) {
             inputHandler.clearSelection();
         }
@@ -156,6 +173,7 @@ public class MainGameController implements Initializable {
         setupGame();
         inputHandler = new PlayerInputHandler(gameEngine);
         handManager.setupCardClickHandlers(inputHandler);
+        setupThreading();
         setupEraClickHandlers();
 
         updateUI();
@@ -183,6 +201,16 @@ public class MainGameController implements Initializable {
             gameRunning = false;
             endTurnButton.setDisable(true);
             loopButton.setDisable(true);
+
+            if (threadingManager != null) {
+                threadingManager.stop();
+            }
+        }
+    }
+
+    public void shutdown() {
+        if (threadingManager != null) {
+            threadingManager.stop();
         }
     }
 
