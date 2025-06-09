@@ -94,28 +94,6 @@ public class CardAcquisitionManager {
         }
     }
 
-    public void printAvailableCards() {
-        System.out.println("\n=== AVAILABLE CARDS ===");
-        boolean hasAnyCards = false;
-
-        for (Era era : Era.values()) {
-            List<ArtifactCard> cards = availableCards.get(era);
-            if (!cards.isEmpty()) {
-                hasAnyCards = true;
-                System.out.println(era.getDisplayName() + ":");
-                for (ArtifactCard card : cards) {
-                    System.out.println("  📋 " + card.getName() + " (" + card.getDimension().getDisplayName() + ")");
-                }
-            }
-        }
-
-        if (!hasAnyCards) {
-            System.out.println("No cards currently available for acquisition");
-        }
-
-        System.out.println("Total available: " + getTotalAvailableCards() + " cards");
-    }
-
     public Map<Era, List<String>> getCardAcquisitionInfo() {
         Map<Era, List<String>> info = new HashMap<>();
 

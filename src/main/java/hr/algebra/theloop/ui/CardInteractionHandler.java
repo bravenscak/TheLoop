@@ -10,8 +10,7 @@ public class CardInteractionHandler {
     private Runnable clickHandler;
 
     public void setClickHandler(Runnable handler) {
-        this.clickHandler = handler;
-    }
+        this.clickHandler = handler;    }
 
     public void setCard(ArtifactCard card) {
         this.card = card;

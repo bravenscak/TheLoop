@@ -2,6 +2,7 @@ package hr.algebra.theloop.engine;
 
 import hr.algebra.theloop.cards.*;
 import hr.algebra.theloop.model.*;
+import hr.algebra.theloop.utils.GameLogger;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -14,32 +15,34 @@ public class GameEngine {
 
     private GameState gameState;
     private List<Player> players;
-    private Random random;
     private int currentPlayerIndex;
-    private boolean waitingForPlayerInput;
     private int duplicatesInBag;
 
+    private final TurnManager turnManager;
     private final DrFooAI drFooAI;
     private final MissionManager missionManager;
     private final CardAcquisitionManager cardAcquisitionManager;
+    private final PlayerActionManager playerActionManager;
 
     public GameEngine() {
         this.gameState = new GameState();
         this.players = new ArrayList<>();
-        this.random = new Random();
         this.currentPlayerIndex = 0;
-        this.waitingForPlayerInput = false;
         this.duplicatesInBag = MAX_DUPLICATES_IN_BAG;
 
+        Random random = new Random();
+        this.turnManager = new TurnManager();
         this.drFooAI = new DrFooAI(random, this);
         this.missionManager = new MissionManager(random);
         this.cardAcquisitionManager = new CardAcquisitionManager(random);
+        this.playerActionManager = new PlayerActionManager(gameState, missionManager, cardAcquisitionManager);
     }
 
     public void addPlayer(String name, Era startingEra) {
         Player player = new Player(name, startingEra);
         players.add(player);
         giveStartingCards(player);
+        GameLogger.gameFlow("Added player: " + name + " @ " + startingEra.getDisplayName());
     }
 
     private void giveStartingCards(Player player) {
@@ -66,116 +69,25 @@ public class GameEngine {
         cardAcquisitionManager.initializeAvailableCards(gameState);
         missionManager.initializeMissions(gameState);
         getCurrentPlayer().setCurrentPlayer(true);
-        waitingForPlayerInput = true;
+        turnManager.startPlayerTurn();
+
+        GameLogger.gameFlow("Game started with " + players.size() + " players");
     }
 
     public void processTurn() {
         if (gameState.isGameOver()) return;
-
-        drFooAI.executeDrFooPhase(gameState);
-        cardAcquisitionManager.addRandomCardsToEras(gameState, 1);
-        waitingForPlayerInput = true;
-    }
-
-    public boolean playCard(Player player, int cardIndex, Era targetEra) {
-        if (gameState.isGameOver() || !waitingForPlayerInput) {
-            return false;
-        }
-
-        List<ArtifactCard> hand = player.getHand();
-        if (cardIndex < 0 || cardIndex >= hand.size()) {
-            return false;
-        }
-
-        ArtifactCard card = hand.get(cardIndex);
-        if (!card.canExecute(gameState, player)) {
-            return false;
-        }
-
-        card.execute(gameState, player);
-        card.exhaust();
-
-        missionManager.checkAllMissions(gameState, player, card.getClass().getSimpleName());
-        checkGameEndConditions();
-
-        return true;
-    }
-
-    public boolean movePlayer(Player player, Era targetEra) {
-        if (gameState.isGameOver() || !waitingForPlayerInput) {
-            return false;
-        }
-
-        Era currentEra = player.getCurrentEra();
-        if (!currentEra.isAdjacentTo(targetEra)) {
-            return false;
-        }
-
-        if (player.canUseFreeBattery()) {
-            player.useFreeBattery();
-            player.moveToEra(targetEra);
-        } else if (gameState.getEnergy(currentEra) > 0) {
-            gameState.removeEnergy(currentEra, 1);
-            player.moveToEra(targetEra);
-        } else {
-            return false;
-        }
-
-        missionManager.checkAllMissions(gameState, player, "Movement");
-        return true;
-    }
-
-    public boolean acquireCard(Player player) {
-        Era playerEra = player.getCurrentEra();
-        ArtifactCard acquiredCard = cardAcquisitionManager.acquireCard(playerEra, player);
-        return acquiredCard != null;
-    }
-
-    public boolean performLoop(Player player, CardDimension dimension) {
-        if (!player.canPerformLoop(dimension, gameState)) {
-            return false;
-        }
-
-        Era playerEra = player.getCurrentEra();
-        int loopCost = player.getLoopsPerformedThisTurn() + 1;
-
-        gameState.removeEnergy(playerEra, loopCost);
-
-        for (ArtifactCard card : player.getHand()) {
-            if (card.getDimension() == dimension && card.isExhausted()) {
-                card.ready();
-            }
-        }
-
-        player.setLoopsPerformedThisTurn(player.getLoopsPerformedThisTurn() + 1);
-        return true;
+        turnManager.processDrFooTurn(drFooAI, gameState, cardAcquisitionManager);
     }
 
     public void endPlayerTurn() {
-        if (!waitingForPlayerInput) return;
+        if (!isWaitingForPlayerInput()) return;
 
-        System.out.println("🎮 === END PLAYER TURN ===");
-        waitingForPlayerInput = false;
-
-        for (Player player : players) {
-            System.out.println("🃏 Processing turn end for: " + player.getName());
-
-            player.discardHand();
-
-            player.rechargeBatteries();
-            player.drawToFullHand();
-
-            player.printDeckState();
-        }
-
-        gameState.nextTurn();
-        System.out.println("🎮 Turn ended. New turn: " + gameState.getTurnNumber());
+        GameLogger.gameFlow("Turn " + gameState.getTurnNumber() + " ended");
+        turnManager.endPlayerTurn(players, gameState);
     }
 
     public boolean spawnDuplicate(Era era) {
-        if (duplicatesInBag <= 0) {
-            return false;
-        }
+        if (duplicatesInBag <= 0) return false;
 
         Duplicate newDuplicate = new Duplicate(era);
         gameState.addDuplicate(era, newDuplicate);
@@ -185,46 +97,44 @@ public class GameEngine {
 
     public void destroyDuplicate(Duplicate duplicate) {
         duplicatesInBag++;
+        GameLogger.debug("Duplicate returned to bag (" + duplicatesInBag + "/28)");
     }
 
-    private void checkGameEndConditions() {
+    public void checkGameEndConditions() {
         if (gameState.getTotalMissionsCompleted() >= 4) {
             gameState.endGame(GameResult.VICTORY);
-            return;
-        }
-
-        if (gameState.getVortexCount() >= 3) {
+            GameLogger.gameEnd("VICTORY - 4 missions completed!");
+        } else if (gameState.getVortexCount() >= 3) {
             gameState.endGame(GameResult.DEFEAT_VORTEXES);
-            return;
-        }
-
-        if (gameState.getCurrentCycle() > 3) {
+            GameLogger.gameEnd("DEFEAT - Too many vortexes!");
+        } else if (gameState.getCurrentCycle() > 3) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
-            return;
+            GameLogger.gameEnd("DEFEAT - Dr. Foo completed his plan!");
         }
     }
+
+    public boolean playCard(Player player, int cardIndex, Era targetEra) {
+        boolean success = playerActionManager.playCard(player, cardIndex, targetEra);
+        if (success) checkGameEndConditions();
+        return success;
+    }
+
+    public boolean movePlayer(Player player, Era targetEra) {
+        return playerActionManager.movePlayer(player, targetEra);
+    }
+
+    public boolean acquireCard(Player player) {
+        return playerActionManager.acquireCard(player);
+    }
+
+    public Player getCurrentPlayer() { return players.get(currentPlayerIndex); }
+    public boolean isGameOver() { return gameState.isGameOver(); }
+    public boolean isWaitingForPlayerInput() { return turnManager.isWaitingForPlayerInput(); }
+    public int getDuplicatesInBag() { return duplicatesInBag; }
+    public MissionManager getMissionManager() { return missionManager; }
 
     public int getTotalDuplicatesOnBoard() {
-        int total = 0;
-        for (Era era : Era.values()) {
-            total += gameState.getDuplicateCount(era);
-        }
-        return total;
-    }
-
-    public Player getCurrentPlayer() {
-        return players.get(currentPlayerIndex);
-    }
-
-    public boolean isGameOver() {
-        return gameState.isGameOver();
-    }
-
-    public boolean isWaitingForPlayerInput() {
-        return waitingForPlayerInput;
-    }
-
-    public int getDuplicatesInBag() {
-        return duplicatesInBag;
+        return Era.values().length - (int) java.util.Arrays.stream(Era.values())
+                .mapToLong(era -> gameState.getDuplicateCount(era)).sum();
     }
 }

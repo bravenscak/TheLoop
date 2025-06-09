@@ -3,6 +3,7 @@ package hr.algebra.theloop.cards;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.utils.GameLogger;
 
 public class MovementCard extends ArtifactCard {
 
@@ -50,29 +51,20 @@ public class MovementCard extends ArtifactCard {
         Era currentEra = player.getCurrentEra();
 
         if (!isValidTarget(currentEra, targetEra)) {
-            System.out.println("❌ Invalid movement target for " + getName());
             return false;
         }
 
         switch (effect) {
-            case MOVE_ADJACENT -> {
+            case MOVE_ADJACENT, MOVE_TWO_ERAS -> {
                 player.moveToEra(targetEra);
-                System.out.println("🚶 " + getName() + ": " + player.getName() + " moved to " + targetEra.getDisplayName());
+                GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName());
             }
-
-            case MOVE_TWO_ERAS -> {
-                player.moveToEra(targetEra);
-                System.out.println("🚶 " + getName() + ": " + player.getName() + " moved to " + targetEra.getDisplayName());
-            }
-
             case MOVE_AND_ADD_ENERGY -> {
                 player.moveToEra(targetEra);
                 gameState.addEnergy(targetEra, 1);
-                System.out.println("🚶⚡ " + getName() + ": " + player.getName() + " moved to " +
-                        targetEra.getDisplayName() + " and added 1 energy");
+                GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " + 1 energy");
             }
         }
-
         return true;
     }
 

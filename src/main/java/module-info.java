@@ -10,6 +10,7 @@ module hr.algebra.theloop {
 
     exports hr.algebra.theloop.model;
     exports hr.algebra.theloop.missions;
+    exports hr.algebra.theloop.utils;
 
     exports hr.algebra.theloop.cards;
 

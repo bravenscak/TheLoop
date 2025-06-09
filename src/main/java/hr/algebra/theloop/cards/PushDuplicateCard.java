@@ -4,6 +4,7 @@ import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.utils.GameLogger;
 
 import java.util.List;
 
@@ -19,7 +20,6 @@ public class PushDuplicateCard extends ArtifactCard {
         List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(playerEra);
 
         if (duplicatesHere.isEmpty()) {
-            System.out.println("❌ No duplicates to push at " + playerEra.getDisplayName());
             return;
         }
 
@@ -32,25 +32,21 @@ public class PushDuplicateCard extends ArtifactCard {
         List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(sourceEra);
 
         if (!duplicatesHere.contains(selectedDuplicate)) {
-            System.out.println("❌ Selected duplicate not found at " + sourceEra.getDisplayName());
             return false;
         }
 
         Era nextEra = sourceEra.getNext();
         Era prevEra = sourceEra.getPrevious();
-
         Era targetEra = gameState.getRifts(nextEra) <= gameState.getRifts(prevEra) ? nextEra : prevEra;
 
         gameState.removeDuplicate(sourceEra, selectedDuplicate);
         selectedDuplicate.moveTo(targetEra);
 
         if (selectedDuplicate.isAtDestructionEra()) {
-            System.out.println("💥 " + selectedDuplicate.getDisplayName() +
-                    " destroyed by temporal paradox at " + targetEra.getDisplayName() + "!");
+            GameLogger.playerAction(player.getName(), "Duplicate destroyed by temporal paradox at " + targetEra.getDisplayName());
         } else {
             gameState.addDuplicate(targetEra, selectedDuplicate);
-            System.out.println("🔄 Pushed " + selectedDuplicate.getDisplayName() + " from " +
-                    sourceEra.getDisplayName() + " to " + targetEra.getDisplayName());
+            GameLogger.playerAction(player.getName(), "Pushed duplicate to " + targetEra.getDisplayName());
         }
 
         return true;

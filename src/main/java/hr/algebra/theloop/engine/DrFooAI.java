@@ -4,6 +4,7 @@ import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.GameResult;
+import hr.algebra.theloop.utils.GameLogger;
 
 import java.util.Random;
 
@@ -18,7 +19,8 @@ public class DrFooAI {
     }
 
     public void executeDrFooPhase(GameState gameState) {
-        System.out.println("\n--- DR. FOO PHASE ---");
+        GameLogger.turnSeparator();
+        GameLogger.drFoo("Phase begins");
 
         spawnDuplicates(gameState);
         moveDrFoo(gameState);
@@ -35,8 +37,10 @@ public class DrFooAI {
 
             boolean spawned = gameEngine.spawnDuplicate(randomEra);
             if (!spawned) {
-                System.out.println("🚫 Cannot spawn more duplicates - bag is empty!");
+                GameLogger.warning("Cannot spawn duplicate - bag empty");
                 break;
+            } else {
+                GameLogger.drFoo("Spawned duplicate at " + randomEra.getDisplayName());
             }
         }
     }
@@ -63,7 +67,7 @@ public class DrFooAI {
         gameState.moveDrFoo();
         Era newPosition = gameState.getDrFooPosition();
 
-        System.out.println("🤖 Dr. Foo moves: " + oldPosition.getDisplayName() + " → " + newPosition.getDisplayName());
+        GameLogger.drFoo("Moves: " + oldPosition.getDisplayName() + " → " + newPosition.getDisplayName());
     }
 
     private void dropRifts(GameState gameState) {
@@ -71,7 +75,7 @@ public class DrFooAI {
         int duplicatesHere = gameState.getDuplicateCount(drFooEra);
         int totalRifts = 2 + duplicatesHere;
 
-        System.out.println("🎲 Dropping " + totalRifts + " rifts (2 base + " + duplicatesHere + " duplicates)");
+        GameLogger.drFoo("Dropping " + totalRifts + " rifts (2 base + " + duplicatesHere + " duplicates)");
         simulateCubeTower(gameState, drFooEra, totalRifts);
     }
 
@@ -81,11 +85,6 @@ public class DrFooAI {
                 drFooEra,
                 drFooEra.getNext()
         };
-
-        System.out.println("🎯 Cube tower targets: " +
-                possibleTargets[0].getDisplayName() + ", " +
-                possibleTargets[1].getDisplayName() + ", " +
-                possibleTargets[2].getDisplayName());
 
         for (int i = 0; i < riftsToAdd; i++) {
             Era targetEra = possibleTargets[random.nextInt(3)];
@@ -97,11 +96,11 @@ public class DrFooAI {
         int currentRifts = gameState.getRifts(era);
 
         if (currentRifts >= 3) {
-            System.out.println("⚠️ VORTEX created at " + era.getDisplayName() + "!");
+            GameLogger.warning("VORTEX created at " + era.getDisplayName());
             gameState.createVortex(era);
         } else {
             gameState.addRifts(era, 1);
-            System.out.println("🔴 Added 1 rift to " + era.getDisplayName() + " (" + (currentRifts + 1) + "/3)");
+            GameLogger.drFoo("Added 1 rift to " + era.getDisplayName() + " (" + (currentRifts + 1) + "/3)");
         }
     }
 
@@ -116,13 +115,13 @@ public class DrFooAI {
     private void checkDefeatConditions(GameState gameState) {
         if (gameState.getVortexCount() >= 3) {
             gameState.endGame(GameResult.DEFEAT_VORTEXES);
-            System.out.println("💀 DEFEAT: 3+ vortexes created!");
+            GameLogger.gameEnd("DEFEAT: 3+ vortexes created!");
             return;
         }
 
         if (gameState.getCurrentCycle() > 3) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
-            System.out.println("💀 DEFEAT: Dr. Foo completed 3 cycles!");
+            GameLogger.gameEnd("DEFEAT: Dr. Foo completed 3 cycles!");
             return;
         }
     }

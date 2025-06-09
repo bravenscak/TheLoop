@@ -3,8 +3,8 @@ package hr.algebra.theloop.controller;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
-import hr.algebra.theloop.ui.GameUIManager;
 import hr.algebra.theloop.ui.PlayerHandManager;
+import hr.algebra.theloop.ui.UIUpdateManager;
 import hr.algebra.theloop.view.CircularBoardView;
 import hr.algebra.theloop.view.SimpleEraView;
 import javafx.fxml.FXML;
@@ -42,7 +42,7 @@ public class MainGameController implements Initializable {
     @FXML private Label availableCardsLabel;
 
     private GameEngine gameEngine;
-    private GameUIManager uiManager;
+    private UIUpdateManager uiUpdateManager;
     private PlayerInputHandler inputHandler;
     private PlayerHandManager handManager;
     private boolean gameRunning;
@@ -63,7 +63,7 @@ public class MainGameController implements Initializable {
     }
 
     private void setupManagers() {
-        uiManager = new GameUIManager(
+        uiUpdateManager = new UIUpdateManager(
                 turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel,
                 playerNameLabel, playerLocationLabel, endTurnButton, loopButton,
                 activeMissionsList, circularBoard,
@@ -75,12 +75,8 @@ public class MainGameController implements Initializable {
     }
 
     private void setupEventHandlers() {
-        setupCardClickHandlers();
-        setupEraClickHandlers();
-    }
-
-    private void setupCardClickHandlers() {
         handManager.setupCardClickHandlers(inputHandler);
+        setupEraClickHandlers();
     }
 
     private void setupEraClickHandlers() {
@@ -103,9 +99,7 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void endTurn() {
-        if (!gameRunning || gameEngine.isGameOver()) {
-            return;
-        }
+        if (!gameRunning || gameEngine.isGameOver()) return;
 
         boolean success;
         if (gameEngine.isWaitingForPlayerInput()) {
@@ -122,9 +116,7 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void performLoop() {
-        if (!gameRunning || gameEngine.isGameOver()) {
-            return;
-        }
+        if (!gameRunning || gameEngine.isGameOver()) return;
 
         boolean success = inputHandler.performLoop();
         if (success) {
@@ -134,9 +126,7 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void acquireCard() {
-        if (!gameRunning || gameEngine.isGameOver()) {
-            return;
-        }
+        if (!gameRunning || gameEngine.isGameOver()) return;
 
         boolean success = gameEngine.acquireCard(gameEngine.getCurrentPlayer());
         if (success) {
@@ -165,7 +155,7 @@ public class MainGameController implements Initializable {
 
         setupGame();
         inputHandler = new PlayerInputHandler(gameEngine);
-        setupCardClickHandlers();
+        handManager.setupCardClickHandlers(inputHandler);
         setupEraClickHandlers();
 
         updateUI();
@@ -176,7 +166,7 @@ public class MainGameController implements Initializable {
     private void updateUI() {
         if (gameEngine == null) return;
 
-        uiManager.updateAll(
+        uiUpdateManager.updateAll(
                 gameEngine.getGameState(),
                 gameEngine.getCurrentPlayer(),
                 gameEngine.isGameOver(),

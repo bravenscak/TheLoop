@@ -3,6 +3,7 @@ package hr.algebra.theloop.cards;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.utils.GameLogger;
 
 public class RiftCard extends ArtifactCard {
 
@@ -44,35 +45,24 @@ public class RiftCard extends ArtifactCard {
                 int riftsHere = gameState.getRifts(playerEra);
                 int actualRemoved = Math.min(riftAmount, riftsHere);
                 gameState.removeRifts(playerEra, actualRemoved);
-                System.out.println("🔧 " + getName() + ": Removed " + actualRemoved + " rifts from " + playerEra.getDisplayName());
+                GameLogger.playerAction(player.getName(), "Removed " + actualRemoved + " rifts from " + playerEra.getDisplayName());
             }
-
             case REMOVE_FROM_ADJACENT -> {
                 Era prevEra = playerEra.getPrevious();
                 Era nextEra = playerEra.getNext();
-
-                int prevRifts = gameState.getRifts(prevEra);
-                int nextRifts = gameState.getRifts(nextEra);
-
-                int prevRemoved = Math.min(riftAmount, prevRifts);
-                int nextRemoved = Math.min(riftAmount, nextRifts);
-
+                int prevRemoved = Math.min(riftAmount, gameState.getRifts(prevEra));
+                int nextRemoved = Math.min(riftAmount, gameState.getRifts(nextEra));
                 gameState.removeRifts(prevEra, prevRemoved);
                 gameState.removeRifts(nextEra, nextRemoved);
-
-                System.out.println("🔧 " + getName() + ": Removed " + prevRemoved + " rifts from " +
-                        prevEra.getDisplayName() + " and " + nextRemoved + " rifts from " + nextEra.getDisplayName());
+                GameLogger.playerAction(player.getName(), "Removed rifts from adjacent eras");
             }
-
             case REMOVE_FROM_DR_FOO -> {
                 Era drFooEra = gameState.getDrFooPosition();
-                int riftsHere = gameState.getRifts(drFooEra);
-                int actualRemoved = Math.min(riftAmount, riftsHere);
+                int actualRemoved = Math.min(riftAmount, gameState.getRifts(drFooEra));
                 gameState.removeRifts(drFooEra, actualRemoved);
-                System.out.println("🔧 " + getName() + ": Removed " + actualRemoved + " rifts from Dr. Foo's era (" + drFooEra.getDisplayName() + ")");
+                GameLogger.playerAction(player.getName(), "Removed " + actualRemoved + " rifts from Dr. Foo's era");
             }
         }
-
         exhaust();
     }
 

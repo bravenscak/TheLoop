@@ -23,33 +23,22 @@ public class StabilizeEraMission extends Mission {
 
     @Override
     public boolean checkProgress(GameState gameState, Player player, String actionType) {
-        System.out.println("🐛 Stabilize mission check: actionType=" + actionType +
-                ", player@" + player.getCurrentEra() +
-                ", mission@" + assignedEra +
-                ", currentRifts=" + gameState.getRifts(assignedEra));
-
         if (!actionType.contains("Rift")) {
-            System.out.println("🐛 Not a rift action, skipping");
             return false;
         }
 
         if (!player.getCurrentEra().equals(assignedEra)) {
-            System.out.println("🐛 Player not on mission era, skipping");
             return false;
         }
 
         riftsRemovedByPlayer++;
         playerHasWorked = true;
 
-        System.out.println("🎯 Mission progress: " + riftsRemovedByPlayer + " rifts removed by player from " + assignedEra.getDisplayName());
-
         if (gameState.getRifts(assignedEra) == 0 && playerHasWorked && riftsRemovedByPlayer > 0) {
-            System.out.println("🎯 Mission completed through player action at " + assignedEra.getDisplayName() + "!");
             completed = true;
             currentProgress = 1;
             return true;
         }
-
         return false;
     }
 

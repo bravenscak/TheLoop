@@ -4,6 +4,7 @@ import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.utils.GameLogger;
 
 import java.util.List;
 
@@ -30,13 +31,13 @@ public class DestroyDuplicateCard extends ArtifactCard {
         List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(sourceEra);
 
         if (!duplicatesHere.contains(selectedDuplicate)) {
-            System.out.println("❌ Selected duplicate not found at " + sourceEra.getDisplayName());
             return false;
         }
 
         gameState.removeDuplicate(sourceEra, selectedDuplicate);
-        System.out.println("💥 Destroyed " + selectedDuplicate.getDisplayName() +
-                " at " + sourceEra.getDisplayName() + "!");
+
+        // TODO: Need to fix duplicate bag management
+        GameLogger.playerAction(player.getName(), "Destroyed duplicate at " + sourceEra.getDisplayName());
 
         return true;
     }

@@ -85,14 +85,6 @@ public class Duplicate implements Serializable {
         return destroyEra.getIcon() + " " + destroyEra.getDisplayName();
     }
 
-    public String getStatusInfo() {
-        return String.format("Duplicate %s at %s (destroy at %s, age: %d)",
-                getDisplayName(),
-                currentEra.getDisplayName(),
-                destroyEra.getDisplayName(),
-                turnsActive);
-    }
-
     @Override
     public String toString() {
         return String.format("Duplicate[%s: %s → %s → %s]",

@@ -3,6 +3,7 @@ package hr.algebra.theloop.cards;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.utils.GameLogger;
 
 public class EnergyCard extends ArtifactCard {
 
@@ -42,18 +43,15 @@ public class EnergyCard extends ArtifactCard {
         switch (effect) {
             case ADD_TO_CURRENT -> {
                 gameState.addEnergy(playerEra, energyAmount);
-                System.out.println("⚡ " + getName() + ": Added " + energyAmount + " energy to " + playerEra.getDisplayName());
+                GameLogger.playerAction(player.getName(), "Added " + energyAmount + " energy to " + playerEra.getDisplayName());
             }
-
             case ADD_TO_ADJACENT -> {
                 Era prevEra = playerEra.getPrevious();
                 Era nextEra = playerEra.getNext();
                 gameState.addEnergy(prevEra, energyAmount);
                 gameState.addEnergy(nextEra, energyAmount);
-                System.out.println("⚡ " + getName() + ": Added " + energyAmount + " energy to " +
-                        prevEra.getDisplayName() + " and " + nextEra.getDisplayName());
+                GameLogger.playerAction(player.getName(), "Added " + energyAmount + " energy to adjacent eras");
             }
-
             case STEAL_FROM_DR_FOO -> {
                 Era drFooEra = gameState.getDrFooPosition();
                 int availableEnergy = gameState.getEnergy(drFooEra);
@@ -62,13 +60,10 @@ public class EnergyCard extends ArtifactCard {
                 if (actualStolen > 0) {
                     gameState.removeEnergy(drFooEra, actualStolen);
                     gameState.addEnergy(playerEra, actualStolen);
-                    System.out.println("⚡ " + getName() + ": Stole " + actualStolen + " energy from Dr. Foo's era");
-                } else {
-                    System.out.println("⚡ " + getName() + ": No energy to steal from Dr. Foo's era");
+                    GameLogger.playerAction(player.getName(), "Stole " + actualStolen + " energy from Dr. Foo");
                 }
             }
         }
-
         exhaust();
     }
 

@@ -31,7 +31,6 @@ public abstract class ArtifactCard implements Serializable {
     }
 
     public abstract void execute(GameState gameState, Player player);
-
     public abstract boolean canExecute(GameState gameState, Player player);
 
     public void exhaust() {
@@ -50,29 +49,8 @@ public abstract class ArtifactCard implements Serializable {
         return !exhausted;
     }
 
-    public String getStyleClass() {
-        return dimension.getCssClass() + (exhausted ? " exhausted" : " ready");
-    }
-
-    public String getDetailedInfo() {
-        StringBuilder info = new StringBuilder();
-        info.append("Name: ").append(name).append("\n");
-        info.append("Dimension: ").append(dimension.getDisplayName()).append("\n");
-        info.append("Description: ").append(description).append("\n");
-
-        if (cost > 0) {
-            info.append("Energy Cost: ").append(cost).append("\n");
-        }
-
-        if (flavorText != null && !flavorText.isEmpty()) {
-            info.append("\"").append(flavorText).append("\"");
-        }
-
-        return info.toString();
-    }
-
     public boolean canBeLooped() {
-        return dimension.canLoop() && exhausted;
+        return exhausted;
     }
 
     public String getShortSummary() {

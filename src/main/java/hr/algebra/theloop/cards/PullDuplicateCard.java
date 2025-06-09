@@ -4,6 +4,7 @@ import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.utils.GameLogger;
 
 import java.util.List;
 
@@ -44,13 +45,11 @@ public class PullDuplicateCard extends ArtifactCard {
         Era playerEra = player.getCurrentEra();
 
         if (!playerEra.isAdjacentTo(sourceEra)) {
-            System.out.println("❌ " + sourceEra.getDisplayName() + " is not adjacent to player");
             return false;
         }
 
         List<Duplicate> duplicatesAtSource = gameState.getDuplicatesAt(sourceEra);
         if (!duplicatesAtSource.contains(selectedDuplicate)) {
-            System.out.println("❌ Selected duplicate not found at " + sourceEra.getDisplayName());
             return false;
         }
 
@@ -58,12 +57,10 @@ public class PullDuplicateCard extends ArtifactCard {
         selectedDuplicate.moveTo(playerEra);
 
         if (selectedDuplicate.isAtDestructionEra()) {
-            System.out.println("💥 " + selectedDuplicate.getDisplayName() +
-                    " destroyed by temporal paradox at " + playerEra.getDisplayName() + "!");
+            GameLogger.playerAction(player.getName(), "Duplicate destroyed by temporal paradox at " + playerEra.getDisplayName());
         } else {
             gameState.addDuplicate(playerEra, selectedDuplicate);
-            System.out.println("🔄 Pulled " + selectedDuplicate.getDisplayName() + " from " +
-                    sourceEra.getDisplayName() + " to " + playerEra.getDisplayName());
+            GameLogger.playerAction(player.getName(), "Pulled duplicate from " + sourceEra.getDisplayName());
         }
 
         return true;

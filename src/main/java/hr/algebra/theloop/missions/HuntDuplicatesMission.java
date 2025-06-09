@@ -14,24 +14,15 @@ public class HuntDuplicatesMission extends Mission {
 
     @Override
     public boolean checkProgress(GameState gameState, Player player, String actionType) {
-        System.out.println("🐛 Hunt mission check: actionType=" + actionType +
-                ", player@" + player.getCurrentEra() +
-                ", progress=" + currentProgress);
-
         if (actionType.contains("Duplicate")) {
             currentProgress++;
-            System.out.println("🎯 Duplicate manipulated! Progress: " + currentProgress + "/" + requiredProgress);
 
             if (currentProgress >= requiredProgress) {
-                System.out.println("🎯 Hunt Duplicates mission completed!");
                 completed = true;
                 return true;
             }
-
             return true;
         }
-
-        System.out.println("🐛 Not a duplicate action, skipping");
         return false;
     }
 

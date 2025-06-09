@@ -121,11 +121,4 @@ public class EraController implements Initializable {
         return playerPresent;
     }
 
-    public String getStatusInfo() {
-        return String.format("%s: %d🔴 %d🟢 %s%s",
-                era != null ? era.getDisplayName() : "Unknown",
-                currentRifts, currentEnergy,
-                hasVortex ? "⚠️" : "",
-                playerPresent ? "🕵️" : "");
-    }
 }
