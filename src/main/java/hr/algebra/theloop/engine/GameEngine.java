@@ -137,4 +137,61 @@ public class GameEngine {
         return Era.values().length - (int) java.util.Arrays.stream(Era.values())
                 .mapToLong(era -> gameState.getDuplicateCount(era)).sum();
     }
+
+    public void restoreFromGameState(GameState loadedState) {
+        if (loadedState == null) {
+            throw new IllegalArgumentException("Cannot restore from null GameState");
+        }
+
+        GameLogger.debug("Restoring game state from save file...");
+
+        this.gameState = loadedState;
+
+        if (this.players.isEmpty()) {
+            addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
+            GameLogger.debug("Created default player for loaded game");
+        }
+
+        if (!players.isEmpty()) {
+            getCurrentPlayer().setCurrentPlayer(true);
+        }
+
+        if (loadedState.isGameOver()) {
+            turnManager.setWaitingForPlayerInput(false);
+            GameLogger.debug("Game over state - not waiting for input");
+        } else {
+            turnManager.setWaitingForPlayerInput(true);
+            GameLogger.debug("Game active - waiting for player input");
+        }
+
+        this.duplicatesInBag = MAX_DUPLICATES_IN_BAG;
+        for (Era era : Era.values()) {
+            this.duplicatesInBag -= loadedState.getDuplicateCount(era);
+        }
+
+        if (this.duplicatesInBag < 0) {
+            this.duplicatesInBag = 0;
+            GameLogger.warning("Duplicate count was negative, reset to 0");
+        }
+
+        cardAcquisitionManager.clearAllCards();
+
+        for (Era era : Era.values()) {
+            if (!loadedState.hasVortex(era)) {
+                cardAcquisitionManager.addCardToEra(era, hr.algebra.theloop.cards.CardFactory.createRandomCard());
+            }
+        }
+
+        GameLogger.gameFlow("Game state restored successfully:");
+        GameLogger.gameFlow("  Turn: " + loadedState.getTurnNumber());
+        GameLogger.gameFlow("  Dr. Foo: " + loadedState.getDrFooPosition().getDisplayName());
+        GameLogger.gameFlow("  Cycle: " + loadedState.getCurrentCycle() + "/3");
+        GameLogger.gameFlow("  Missions: " + loadedState.getTotalMissionsCompleted() + "/4");
+        GameLogger.gameFlow("  Vortexes: " + loadedState.getVortexCount() + "/3");
+        GameLogger.gameFlow("  Duplicates in bag: " + this.duplicatesInBag + "/28");
+
+        if (loadedState.isGameOver()) {
+            GameLogger.gameFlow("Loaded game was already finished: " + loadedState.getGameResult().getMessage());
+        }
+    }
 }

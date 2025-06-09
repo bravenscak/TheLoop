@@ -3,9 +3,9 @@ package hr.algebra.theloop.controller;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
+import hr.algebra.theloop.thread.ThreadingManager;
 import hr.algebra.theloop.ui.PlayerHandManager;
 import hr.algebra.theloop.ui.UIUpdateManager;
-import hr.algebra.theloop.utils.GameLogger;
 import hr.algebra.theloop.view.CircularBoardView;
 import hr.algebra.theloop.view.SimpleEraView;
 import javafx.fxml.FXML;
@@ -14,7 +14,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.HBox;
-import hr.algebra.theloop.thread.ThreadingManager;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -47,9 +46,9 @@ public class MainGameController implements Initializable {
     private UIUpdateManager uiUpdateManager;
     private PlayerInputHandler inputHandler;
     private PlayerHandManager handManager;
-    private boolean gameRunning;
     private ThreadingManager threadingManager;
-
+    private GameActionsHandler actionsHandler;
+    private boolean gameRunning;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -77,11 +76,19 @@ public class MainGameController implements Initializable {
 
         inputHandler = new PlayerInputHandler(gameEngine);
         handManager = new PlayerHandManager(card1Controller, card2Controller, card3Controller);
+
+        actionsHandler = new GameActionsHandler(
+                gameEngine, threadingManager, this::updateUI, this::handleGameEnd
+        );
     }
 
     private void setupThreading() {
         threadingManager = new ThreadingManager(gameEngine);
         threadingManager.start();
+
+        if (actionsHandler != null) {
+            actionsHandler.updateThreadingManager(threadingManager);
+        }
     }
 
     private void setupEventHandlers() {
@@ -146,36 +153,33 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void saveGame() {
-        if (threadingManager != null) {
-            threadingManager.forceAutoSave();
-            GameLogger.gameFlow("Manual save triggered");
-        }
+        if (!gameRunning) return;
+        actionsHandler.handleSaveGame();
     }
 
     @FXML
     private void loadGame() {
-        System.out.println("📁 Load game - TODO: Implement deserialization");
+        if (!gameRunning) return;
+
+        GameEngine newGameEngine = actionsHandler.handleLoadGame(endTurnButton);
+        if (newGameEngine != null) {
+            gameEngine = newGameEngine;
+            inputHandler = new PlayerInputHandler(gameEngine);
+            actionsHandler.updateGameEngine(gameEngine);
+            setupThreading();
+            setupEventHandlers();
+            updateUI();
+        }
     }
 
     @FXML
     private void newGame() {
-        if (threadingManager != null) {
-            threadingManager.stop();
-        }
-
-        if (inputHandler != null) {
-            inputHandler.clearSelection();
-        }
-        if (handManager != null) {
-            handManager.clearAllSelections();
-        }
-
-        setupGame();
+        gameEngine = actionsHandler.handleNewGame();
         inputHandler = new PlayerInputHandler(gameEngine);
-        handManager.setupCardClickHandlers(inputHandler);
+        actionsHandler.updateGameEngine(gameEngine);
+        handManager.clearAllSelections();
         setupThreading();
-        setupEraClickHandlers();
-
+        setupEventHandlers();
         updateUI();
         endTurnButton.setDisable(false);
         gameRunning = true;
@@ -198,13 +202,17 @@ public class MainGameController implements Initializable {
 
     private void checkGameEnd() {
         if (gameEngine.isGameOver()) {
-            gameRunning = false;
-            endTurnButton.setDisable(true);
-            loopButton.setDisable(true);
+            handleGameEnd();
+        }
+    }
 
-            if (threadingManager != null) {
-                threadingManager.stop();
-            }
+    private void handleGameEnd() {
+        gameRunning = false;
+        endTurnButton.setDisable(true);
+        loopButton.setDisable(true);
+
+        if (threadingManager != null) {
+            threadingManager.stop();
         }
     }
 

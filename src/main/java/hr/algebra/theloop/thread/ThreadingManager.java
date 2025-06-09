@@ -29,10 +29,9 @@ public class ThreadingManager {
     }
 
     private void performAutoSave() {
-        if (gameEngine.getGameState().getTurnNumber() <= 1 || gameEngine.isGameOver()) {
+        if (gameEngine.isGameOver()) {
             return;
         }
-        System.out.println("Current directory: " + System.getProperty("user.dir"));
 
         AutoSaveThread saveThread = new AutoSaveThread(gameEngine.getGameState());
         Thread thread = new Thread(saveThread, "AutoSave-Thread");
@@ -59,14 +58,12 @@ public class ThreadingManager {
     public void pause() {
         if (isRunning) {
             autoSaveTimeline.pause();
-            GameLogger.debug("Threading paused");
         }
     }
 
     public void resume() {
         if (isRunning) {
             autoSaveTimeline.play();
-            GameLogger.debug("Threading resumed");
         }
     }
 
