@@ -5,13 +5,18 @@ public class GameLogger {
 
     public static final boolean DEBUG_MODE = false;
     public static final boolean VERBOSE_MODE = false;
+    public static final boolean PRODUCTION_MODE = true;
 
     public static void gameFlow(String message) {
-        System.out.println("🎮 " + message);
+        if (!PRODUCTION_MODE) {
+            System.out.println("🎮 " + message);
+        }
     }
 
     public static void playerAction(String playerName, String action) {
-        System.out.println("👤 " + playerName + ": " + action);
+        if (!PRODUCTION_MODE) {
+            System.out.println("👤 " + playerName + ": " + action);
+        }
     }
 
     public static void mission(String message) {
@@ -19,18 +24,8 @@ public class GameLogger {
     }
 
     public static void drFoo(String message) {
-        System.out.println("🤖 Dr. Foo: " + message);
-    }
-
-    public static void card(String message) {
-        if (VERBOSE_MODE) {
-            System.out.println("🃏 " + message);
-        }
-    }
-
-    public static void debug(String message) {
-        if (DEBUG_MODE) {
-            System.out.println("🐛 DEBUG: " + message);
+        if (!PRODUCTION_MODE) {
+            System.out.println("🤖 Dr. Foo: " + message);
         }
     }
 
@@ -46,11 +41,8 @@ public class GameLogger {
         System.out.println("⚠️ " + message);
     }
 
-    public static void turnSeparator() {
-        System.out.println("\n" + "=".repeat(50));
+    public static void gameEnd(String result) {
+        System.out.println("\n🏁 GAME END: " + result + "\n");
     }
 
-    public static void gameEnd(String result) {
-        System.out.println("\n" + "🏁 GAME END: " + result + "\n");
-    }
 }

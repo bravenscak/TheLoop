@@ -3,19 +3,15 @@ package hr.algebra.theloop.controller;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
-import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.thread.ThreadingManager;
+import hr.algebra.theloop.ui.GameUIManager;
 import hr.algebra.theloop.ui.PlayerHandManager;
-import hr.algebra.theloop.ui.UIUpdateManager;
-import hr.algebra.theloop.utils.GameLogger;
 import hr.algebra.theloop.view.CircularBoardView;
-import hr.algebra.theloop.view.SimpleEraView;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.HBox;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -23,29 +19,15 @@ import java.util.ResourceBundle;
 public class MainGameController implements Initializable {
 
     @FXML private CircularBoardView circularBoard;
-    @FXML private HBox playerHandBox;
-    @FXML private CardController card1Controller;
-    @FXML private CardController card2Controller;
-    @FXML private CardController card3Controller;
-
-    @FXML private Label turnLabel;
-    @FXML private Label drFooLocationLabel;
-    @FXML private Label cycleLabel;
-    @FXML private Label missionsLabel;
-    @FXML private Label vortexLabel;
-    @FXML private Label playerNameLabel;
-    @FXML private Label playerLocationLabel;
-
-    @FXML private Button endTurnButton;
-    @FXML private Button loopButton;
-
+    @FXML private CardController card1Controller, card2Controller, card3Controller;
+    @FXML private Label turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel;
+    @FXML private Label playerNameLabel, playerLocationLabel;
+    @FXML private Label completedMissionsLabel, duplicatesLabel, availableCardsLabel;
+    @FXML private Button endTurnButton, loopButton;
     @FXML private ListView<String> activeMissionsList;
-    @FXML private Label completedMissionsLabel;
-    @FXML private Label duplicatesLabel;
-    @FXML private Label availableCardsLabel;
 
     private GameEngine gameEngine;
-    private UIUpdateManager uiUpdateManager;
+    private GameUIManager uiManager;
     private PlayerInputHandler inputHandler;
     private PlayerHandManager handManager;
     private ThreadingManager threadingManager;
@@ -54,22 +36,22 @@ public class MainGameController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        setupGame();
-        setupManagers();
-        setupThreading();
+        initializeGame();
+        initializeManagers();
+        initializeThreading();
         setupEventHandlers();
         updateUI();
     }
 
-    private void setupGame() {
+    private void initializeGame() {
         gameEngine = new GameEngine();
         gameEngine.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
         gameEngine.startGame();
         gameRunning = true;
     }
 
-    private void setupManagers() {
-        uiUpdateManager = new UIUpdateManager(
+    private void initializeManagers() {
+        uiManager = new GameUIManager(
                 turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel,
                 playerNameLabel, playerLocationLabel, endTurnButton, loopButton,
                 activeMissionsList, circularBoard,
@@ -78,54 +60,37 @@ public class MainGameController implements Initializable {
 
         inputHandler = new PlayerInputHandler(gameEngine);
         handManager = new PlayerHandManager(card1Controller, card2Controller, card3Controller);
-
-        actionsHandler = new GameActionsHandler(
-                gameEngine, threadingManager, this::updateUI, this::handleGameEnd
-        );
+        actionsHandler = new GameActionsHandler(gameEngine, threadingManager, this::updateUI, this::endGame);
     }
 
-    private void setupThreading() {
+    private void initializeThreading() {
         threadingManager = new ThreadingManager(gameEngine);
         threadingManager.start();
-
-        if (actionsHandler != null) {
-            actionsHandler.updateThreadingManager(threadingManager);
-        }
+        actionsHandler.updateThreadingManager(threadingManager);
     }
 
     private void setupEventHandlers() {
         handManager.setupCardClickHandlers(inputHandler);
-        setupEraClickHandlers();
-    }
 
-    private void setupEraClickHandlers() {
-        if (circularBoard != null) {
-            for (Era era : Era.values()) {
-                SimpleEraView eraView = circularBoard.getEraView(era);
-                if (eraView != null) {
-                    eraView.setOnMouseClicked(event -> {
-                        boolean success = inputHandler.handleEraClick(era);
-                        if (success) {
-                            updateUI();
-                            checkGameEnd();
-                        }
-                        event.consume();
-                    });
-                }
+        for (Era era : Era.values()) {
+            var eraView = circularBoard.getEraView(era);
+            if (eraView != null) {
+                eraView.setOnMouseClicked(event -> {
+                    if (inputHandler.handleEraClick(era)) {
+                        updateUI();
+                        checkGameEnd();
+                    }
+                    event.consume();
+                });
             }
         }
     }
 
-    @FXML
-    private void endTurn() {
+    @FXML private void endTurn() {
         if (!gameRunning || gameEngine.isGameOver()) return;
 
-        boolean success;
-        if (gameEngine.isWaitingForPlayerInput()) {
-            success = inputHandler.endPlayerTurn();
-        } else {
-            success = inputHandler.processNextTurn();
-        }
+        boolean success = gameEngine.isWaitingForPlayerInput() ?
+                inputHandler.endPlayerTurn() : inputHandler.processNextTurn();
 
         if (success) {
             updateUI();
@@ -133,70 +98,51 @@ public class MainGameController implements Initializable {
         }
     }
 
-    @FXML
-    private void performLoop() {
-        if (!gameRunning || gameEngine.isGameOver()) return;
-
-        boolean success = inputHandler.performLoop();
-        if (success) {
+    @FXML private void performLoop() {
+        if (gameRunning && !gameEngine.isGameOver() && inputHandler.performLoop()) {
             updateUI();
         }
     }
 
-    @FXML
-    private void acquireCard() {
-        if (!gameRunning || gameEngine.isGameOver()) return;
-
-        boolean success = gameEngine.acquireCard(gameEngine.getCurrentPlayer());
-        if (success) {
+    @FXML private void acquireCard() {
+        if (gameRunning && !gameEngine.isGameOver() && gameEngine.acquireCard(gameEngine.getCurrentPlayer())) {
             updateUI();
         }
     }
 
-    @FXML
-    private void saveGame() {
-        if (!gameRunning) return;
-        gameEngine.saveGame();
-        actionsHandler.handleSaveGame();
-        GameLogger.gameFlow("Game saved with player states");
+    @FXML private void saveGame() {
+        if (gameRunning) {
+            gameEngine.saveGame();
+            actionsHandler.handleSaveGame();
+        }
     }
 
-    @FXML
-    private void loadGame() {
+    @FXML private void loadGame() {
         if (!gameRunning) return;
 
-        GameEngine newGameEngine = actionsHandler.handleLoadGame(endTurnButton);
-        if (newGameEngine != null) {
-            gameEngine = newGameEngine;
+        GameEngine newEngine = actionsHandler.handleLoadGame(endTurnButton);
+        if (newEngine != null) {
+            gameEngine = newEngine;
             inputHandler = new PlayerInputHandler(gameEngine);
             actionsHandler.updateGameEngine(gameEngine);
-
-            Player currentPlayer = gameEngine.getCurrentPlayer();
-            GameLogger.gameFlow("After load - Player: " + currentPlayer.getName() +
-                    ", Hand size: " + currentPlayer.getHandSize());
-
             handManager.clearAllSelections();
 
-            setupThreading();
+            initializeThreading();
             setupEventHandlers();
-
             updateUI();
-
-            GameLogger.gameFlow("Game loaded successfully with player data");
-        } else {
-            GameLogger.error("Failed to load game");
         }
     }
 
-    @FXML
-    private void newGame() {
+    @FXML private void newGame() {
         gameEngine = actionsHandler.handleNewGame();
         inputHandler = new PlayerInputHandler(gameEngine);
         actionsHandler.updateGameEngine(gameEngine);
         handManager.clearAllSelections();
-        setupThreading();
+
+        initializeThreading();
         setupEventHandlers();
         updateUI();
+
         endTurnButton.setDisable(false);
         gameRunning = true;
     }
@@ -204,7 +150,7 @@ public class MainGameController implements Initializable {
     private void updateUI() {
         if (gameEngine == null) return;
 
-        uiUpdateManager.updateAll(
+        uiManager.updateAll(
                 gameEngine.getGameState(),
                 gameEngine.getCurrentPlayer(),
                 gameEngine.isGameOver(),
@@ -218,15 +164,14 @@ public class MainGameController implements Initializable {
 
     private void checkGameEnd() {
         if (gameEngine.isGameOver()) {
-            handleGameEnd();
+            endGame();
         }
     }
 
-    private void handleGameEnd() {
+    private void endGame() {
         gameRunning = false;
         endTurnButton.setDisable(true);
         loopButton.setDisable(true);
-
         if (threadingManager != null) {
             threadingManager.stop();
         }
@@ -236,9 +181,5 @@ public class MainGameController implements Initializable {
         if (threadingManager != null) {
             threadingManager.stop();
         }
-    }
-
-    public GameEngine getGameEngine() {
-        return gameEngine;
     }
 }

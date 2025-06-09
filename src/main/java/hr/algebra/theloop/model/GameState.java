@@ -48,22 +48,16 @@ public class GameState implements Serializable {
 
     public void savePlayerState(Player player) {
         PlayerData playerData = new PlayerData(player);
-
         playerStates.removeIf(ps -> ps.getName().equals(player.getName()));
         playerStates.add(playerData);
-
-        System.out.println("🔍 Saved player state: " + playerData);
     }
 
     public void saveAllPlayerStates(List<Player> players, int currentPlayerIdx) {
         this.currentPlayerIndex = currentPlayerIdx;
         this.playerStates.clear();
-
         for (Player player : players) {
             savePlayerState(player);
         }
-
-        System.out.println("🔍 Saved " + playerStates.size() + " player states");
     }
 
     public void restorePlayerState(Player player) {
@@ -74,9 +68,6 @@ public class GameState implements Serializable {
 
         if (playerData != null) {
             playerData.restoreToPlayer(player);
-            System.out.println("🔍 Restored player state: " + playerData);
-        } else {
-            System.out.println("⚠️ No saved state found for player: " + player.getName());
         }
     }
 
@@ -85,74 +76,37 @@ public class GameState implements Serializable {
     }
 
     public List<String> getSavedPlayerNames() {
-        return playerStates.stream()
-                .map(PlayerData::getName)
-                .toList();
+        return playerStates.stream().map(PlayerData::getName).toList();
     }
 
-    public int getRifts(Era era) {
-        return resources.getRifts(era);
-    }
-
+    public int getRifts(Era era) { return resources.getRifts(era); }
     public void addRifts(Era era, int amount) {
         resources.addRifts(era, amount);
-
         if (resources.getRifts(era) >= 3 && !resources.hasVortex(era)) {
             createVortex(era);
         }
     }
+    public void removeRifts(Era era, int amount) { resources.removeRifts(era, amount); }
 
-    public void removeRifts(Era era, int amount) {
-        resources.removeRifts(era, amount);
-    }
+    public int getEnergy(Era era) { return resources.getEnergy(era); }
+    public void addEnergy(Era era, int amount) { resources.addEnergy(era, amount); }
+    public void removeEnergy(Era era, int amount) { resources.removeEnergy(era, amount); }
 
-    public int getEnergy(Era era) {
-        return resources.getEnergy(era);
-    }
-
-    public void addEnergy(Era era, int amount) {
-        resources.addEnergy(era, amount);
-    }
-
-    public void removeEnergy(Era era, int amount) {
-        resources.removeEnergy(era, amount);
-    }
-
-    public boolean hasVortex(Era era) {
-        return resources.hasVortex(era);
-    }
-
+    public boolean hasVortex(Era era) { return resources.hasVortex(era); }
     public void createVortex(Era era) {
         resources.createVortex(era);
-
         activeMissions.removeIf(mission -> era.equals(mission.getAssignedEra()));
-
-        System.out.println("⚠️ VORTEX created at " + era.getDisplayName() + "!");
 
         if (getVortexCount() >= 3) {
             endGame(GameResult.DEFEAT_VORTEXES);
         }
     }
+    public int getVortexCount() { return resources.getVortexCount(); }
 
-    public int getVortexCount() {
-        return resources.getVortexCount();
-    }
-
-    public List<Duplicate> getDuplicatesAt(Era era) {
-        return resources.getDuplicatesAt(era);
-    }
-
-    public void addDuplicate(Era era, Duplicate duplicate) {
-        resources.addDuplicate(era, duplicate);
-    }
-
-    public boolean removeDuplicate(Era era, Duplicate duplicate) {
-        return resources.removeDuplicate(era, duplicate);
-    }
-
-    public int getDuplicateCount(Era era) {
-        return resources.getDuplicateCount(era);
-    }
+    public List<Duplicate> getDuplicatesAt(Era era) { return resources.getDuplicatesAt(era); }
+    public void addDuplicate(Era era, Duplicate duplicate) { resources.addDuplicate(era, duplicate); }
+    public boolean removeDuplicate(Era era, Duplicate duplicate) { return resources.removeDuplicate(era, duplicate); }
+    public int getDuplicateCount(Era era) { return resources.getDuplicateCount(era); }
 
     public void moveDrFoo() {
         drFooPosition = drFooPosition.getNext();
@@ -167,8 +121,6 @@ public class GameState implements Serializable {
         currentCycle++;
         drFooMovesThisCycle = 0;
 
-        System.out.println("🔄 Dr. Foo completed cycle " + (currentCycle - 1));
-
         if (currentCycle > 3) {
             endGame(GameResult.DEFEAT_CYCLES);
         }
@@ -176,7 +128,6 @@ public class GameState implements Serializable {
 
     public void addMission(Mission mission) {
         activeMissions.add(mission);
-        System.out.println("🎯 New mission: " + mission.toString());
     }
 
     public void completeMission(Mission mission) {
@@ -184,52 +135,31 @@ public class GameState implements Serializable {
             completedMissions.add(mission);
             totalMissionsCompleted++;
 
-            System.out.println("🎯 MISSION COMPLETED: " + mission.getName());
-
             if (totalMissionsCompleted >= 4) {
                 endGame(GameResult.VICTORY);
             }
         }
     }
 
-    public boolean isGameWon() {
-        return totalMissionsCompleted >= 4;
-    }
-
-    public boolean isGameLost() {
-        return resources.getVortexCount() >= 3 || currentCycle > 3;
-    }
+    public boolean isGameWon() { return totalMissionsCompleted >= 4; }
+    public boolean isGameLost() { return resources.getVortexCount() >= 3 || currentCycle > 3; }
 
     public void endGame(GameResult result) {
         this.gameOver = true;
         this.gameResult = result;
-        System.out.println("🏁 GAME END: " + result.getMessage());
     }
 
-    public void nextTurn() {
-        turnNumber++;
-    }
+    public void nextTurn() { turnNumber++; }
 
-    public int getTotalRifts() {
-        return resources.getTotalRifts();
-    }
-
-    public int getTotalEnergy() {
-        return resources.getTotalEnergy();
-    }
-
-    public Era getEraWithMostRifts() {
-        return resources.getEraWithMostRifts();
-    }
-
-    public Era getEraWithMostEnergy() {
-        return resources.getEraWithMostEnergy();
-    }
+    public int getTotalRifts() { return resources.getTotalRifts(); }
+    public int getTotalEnergy() { return resources.getTotalEnergy(); }
+    public Era getEraWithMostRifts() { return resources.getEraWithMostRifts(); }
+    public Era getEraWithMostEnergy() { return resources.getEraWithMostEnergy(); }
 
     @Override
     public String toString() {
-        return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3, Players: %d]",
+        return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3]",
                 turnNumber, drFooPosition.getDisplayName(), currentCycle,
-                totalMissionsCompleted, resources.getVortexCount(), playerStates.size());
+                totalMissionsCompleted, resources.getVortexCount());
     }
 }

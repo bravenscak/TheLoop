@@ -1,12 +1,9 @@
 package hr.algebra.theloop.engine;
 
-import hr.algebra.theloop.cards.*;
 import hr.algebra.theloop.model.*;
 import hr.algebra.theloop.utils.GameLogger;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 @Data
@@ -14,8 +11,7 @@ public class GameEngine {
     private static final int MAX_DUPLICATES_IN_BAG = 28;
 
     private GameState gameState;
-    private List<Player> players;
-    private int currentPlayerIndex;
+    private PlayerManager playerManager;
     private int duplicatesInBag;
 
     private final TurnManager turnManager;
@@ -26,8 +22,7 @@ public class GameEngine {
 
     public GameEngine() {
         this.gameState = new GameState();
-        this.players = new ArrayList<>();
-        this.currentPlayerIndex = 0;
+        this.playerManager = new PlayerManager();
         this.duplicatesInBag = MAX_DUPLICATES_IN_BAG;
 
         Random random = new Random();
@@ -39,39 +34,20 @@ public class GameEngine {
     }
 
     public void addPlayer(String name, Era startingEra) {
-        Player player = new Player(name, startingEra);
-        players.add(player);
-        giveStartingCards(player);
-        GameLogger.gameFlow("Added player: " + name + " @ " + startingEra.getDisplayName());
-    }
-
-    private void giveStartingCards(Player player) {
-        List<ArtifactCard> allStartingCards = CardFactory.createRandomStartingDeck();
-
-        for (int i = 0; i < Math.min(3, allStartingCards.size()); i++) {
-            ArtifactCard card = allStartingCards.get(i);
-            card.ready();
-            player.addCardToHand(card);
-        }
-
-        for (int i = 3; i < allStartingCards.size(); i++) {
-            ArtifactCard card = allStartingCards.get(i);
-            card.ready();
-            player.addCardToDeck(card);
-        }
+        playerManager.addPlayer(name, startingEra);
     }
 
     public void startGame() {
-        if (players.isEmpty()) {
+        if (playerManager.isEmpty()) {
             throw new IllegalStateException("No players added!");
         }
 
         cardAcquisitionManager.initializeAvailableCards(gameState);
         missionManager.initializeMissions(gameState);
-        getCurrentPlayer().setCurrentPlayer(true);
+        playerManager.setupInitialPlayer();
         turnManager.startPlayerTurn();
 
-        GameLogger.gameFlow("Game started with " + players.size() + " players");
+        GameLogger.gameFlow("Game started with " + playerManager.getPlayers().size() + " players");
     }
 
     public void processTurn() {
@@ -81,14 +57,11 @@ public class GameEngine {
 
     public void endPlayerTurn() {
         if (!isWaitingForPlayerInput()) return;
-
-        GameLogger.gameFlow("Turn " + gameState.getTurnNumber() + " ended");
-        turnManager.endPlayerTurn(players, gameState);
+        turnManager.endPlayerTurn(playerManager.getPlayers(), gameState);
     }
 
     public void saveGame() {
-        gameState.saveAllPlayerStates(players, currentPlayerIndex);
-        GameLogger.gameFlow("Player states saved for serialization");
+        gameState.saveAllPlayerStates(playerManager.getPlayers(), playerManager.getCurrentPlayerIndex());
     }
 
     public boolean spawnDuplicate(Era era) {
@@ -100,21 +73,13 @@ public class GameEngine {
         return true;
     }
 
-    public void destroyDuplicate(Duplicate duplicate) {
-        duplicatesInBag++;
-        GameLogger.debug("Duplicate returned to bag (" + duplicatesInBag + "/28)");
-    }
-
     public void checkGameEndConditions() {
         if (gameState.getTotalMissionsCompleted() >= 4) {
             gameState.endGame(GameResult.VICTORY);
-            GameLogger.gameEnd("VICTORY - 4 missions completed!");
         } else if (gameState.getVortexCount() >= 3) {
             gameState.endGame(GameResult.DEFEAT_VORTEXES);
-            GameLogger.gameEnd("DEFEAT - Too many vortexes!");
         } else if (gameState.getCurrentCycle() > 3) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
-            GameLogger.gameEnd("DEFEAT - Dr. Foo completed his plan!");
         }
     }
 
@@ -132,73 +97,27 @@ public class GameEngine {
         return playerActionManager.acquireCard(player);
     }
 
-    public Player getCurrentPlayer() { return players.get(currentPlayerIndex); }
-    public boolean isGameOver() { return gameState.isGameOver(); }
-    public boolean isWaitingForPlayerInput() { return turnManager.isWaitingForPlayerInput(); }
-    public int getDuplicatesInBag() { return duplicatesInBag; }
-    public MissionManager getMissionManager() { return missionManager; }
-
-    public int getTotalDuplicatesOnBoard() {
-        return Era.values().length - (int) java.util.Arrays.stream(Era.values())
-                .mapToLong(era -> gameState.getDuplicateCount(era)).sum();
-    }
-
     public void restoreFromGameState(GameState loadedState) {
         if (loadedState == null) {
             throw new IllegalArgumentException("Cannot restore from null GameState");
         }
 
-        GameLogger.debug("Restoring game state from save file...");
-
         this.gameState = loadedState;
 
-        restorePlayersFromGameState(loadedState);
-
-        if (loadedState.isGameOver()) {
-            turnManager.setWaitingForPlayerInput(false);
-            GameLogger.debug("Game over state - not waiting for input");
-        } else {
-            turnManager.setWaitingForPlayerInput(true);
-            GameLogger.debug("Game active - waiting for player input");
+        if (loadedState.hasPlayerStates()) {
+            playerManager.restorePlayersFromStates(
+                    loadedState.getPlayerStates(),
+                    loadedState.getCurrentPlayerIndex()
+            );
+        } else if (playerManager.isEmpty()) {
+            addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
         }
+
+        turnManager.setWaitingForPlayerInput(!loadedState.isGameOver());
 
         recalculateDuplicatesInBag(loadedState);
 
-        restoreAvailableCards(loadedState);
-
-        logRestoreInfo(loadedState);
-    }
-
-    private void restorePlayersFromGameState(GameState loadedState) {
-        if (loadedState.hasPlayerStates()) {
-            List<String> savedPlayerNames = loadedState.getSavedPlayerNames();
-
-            this.players.clear();
-
-            for (String playerName : savedPlayerNames) {
-                Player player = new Player(playerName, Era.DAWN_OF_TIME); // Temporary era
-                loadedState.restorePlayerState(player);
-                this.players.add(player);
-            }
-
-            this.currentPlayerIndex = loadedState.getCurrentPlayerIndex();
-
-            if (currentPlayerIndex >= players.size()) {
-                currentPlayerIndex = 0;
-            }
-
-            if (!players.isEmpty()) {
-                getCurrentPlayer().setCurrentPlayer(true);
-            }
-
-            GameLogger.gameFlow("Restored " + players.size() + " players from saved states");
-
-        } else {
-            if (this.players.isEmpty()) {
-                addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
-                GameLogger.debug("Created default player - no saved states found");
-            }
-        }
+        restoreAvailableCards();
     }
 
     private void recalculateDuplicatesInBag(GameState loadedState) {
@@ -206,42 +125,27 @@ public class GameEngine {
         for (Era era : Era.values()) {
             this.duplicatesInBag -= loadedState.getDuplicateCount(era);
         }
-
-        if (this.duplicatesInBag < 0) {
-            this.duplicatesInBag = 0;
-            GameLogger.warning("Duplicate count was negative, reset to 0");
-        }
+        this.duplicatesInBag = Math.max(0, this.duplicatesInBag);
     }
 
-    private void restoreAvailableCards(GameState loadedState) {
+    private void restoreAvailableCards() {
         cardAcquisitionManager.clearAllCards();
-
         for (Era era : Era.values()) {
-            if (!loadedState.hasVortex(era)) {
-                cardAcquisitionManager.addCardToEra(era, CardFactory.createRandomCard());
+            if (!gameState.hasVortex(era)) {
+                cardAcquisitionManager.addCardToEra(era,
+                        hr.algebra.theloop.cards.CardFactory.createRandomCard());
             }
         }
     }
 
-    private void logRestoreInfo(GameState loadedState) {
-        GameLogger.gameFlow("Game state restored successfully:");
-        GameLogger.gameFlow("  Turn: " + loadedState.getTurnNumber());
-        GameLogger.gameFlow("  Dr. Foo: " + loadedState.getDrFooPosition().getDisplayName());
-        GameLogger.gameFlow("  Cycle: " + loadedState.getCurrentCycle() + "/3");
-        GameLogger.gameFlow("  Missions: " + loadedState.getTotalMissionsCompleted() + "/4");
-        GameLogger.gameFlow("  Vortexes: " + loadedState.getVortexCount() + "/3");
-        GameLogger.gameFlow("  Players: " + this.players.size());
-        GameLogger.gameFlow("  Duplicates in bag: " + this.duplicatesInBag + "/28");
+    public Player getCurrentPlayer() { return playerManager.getCurrentPlayer(); }
+    public boolean isGameOver() { return gameState.isGameOver(); }
+    public boolean isWaitingForPlayerInput() { return turnManager.isWaitingForPlayerInput(); }
+    public int getDuplicatesInBag() { return duplicatesInBag; }
+    public MissionManager getMissionManager() { return missionManager; }
 
-        for (Player player : players) {
-            GameLogger.gameFlow("  Player: " + player.getName() +
-                    " @ " + player.getCurrentEra().getDisplayName() +
-                    " [Hand: " + player.getHandSize() +
-                    ", Deck: " + player.getDeckSize() + "]");
-        }
-
-        if (loadedState.isGameOver()) {
-            GameLogger.gameFlow("Loaded game was already finished: " + loadedState.getGameResult().getMessage());
-        }
+    public int getTotalDuplicatesOnBoard() {
+        return (int) java.util.Arrays.stream(Era.values())
+                .mapToLong(era -> gameState.getDuplicateCount(era)).sum();
     }
 }

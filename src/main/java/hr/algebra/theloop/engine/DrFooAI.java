@@ -19,7 +19,6 @@ public class DrFooAI {
     }
 
     public void executeDrFooPhase(GameState gameState) {
-        GameLogger.turnSeparator();
         GameLogger.drFoo("Phase begins");
 
         spawnDuplicates(gameState);
