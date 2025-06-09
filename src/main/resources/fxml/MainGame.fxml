@@ -41,11 +41,11 @@
     </bottom>
 
     <right>
-        <VBox spacing="8" styleClass="side-panel" prefWidth="200">
+        <VBox spacing="8" styleClass="side-panel" prefWidth="330">
 
             <VBox spacing="5">
                 <Label text="Active Missions" styleClass="panel-title" />
-                <ListView fx:id="activeMissionsList" prefHeight="120" />
+                <ListView fx:id="activeMissionsList" prefHeight="180" prefWidth="330" />
                 <Label fx:id="completedMissionsLabel" text="Completed: 0/4" styleClass="status-label" />
             </VBox>
 
@@ -57,9 +57,9 @@
 
             <VBox spacing="5">
                 <Label text="Game Controls" styleClass="panel-title" />
-                <Button text="Save Game" onAction="#saveGame" prefWidth="180" />
-                <Button text="Load Game" onAction="#loadGame" prefWidth="180" />
-                <Button text="New Game" onAction="#newGame" prefWidth="180" />
+                <Button text="Save Game" onAction="#saveGame" prefWidth="300" />
+                <Button text="Load Game" onAction="#loadGame" prefWidth="300" />
+                <Button text="New Game" onAction="#newGame" prefWidth="300" />
             </VBox>
 
         </VBox>

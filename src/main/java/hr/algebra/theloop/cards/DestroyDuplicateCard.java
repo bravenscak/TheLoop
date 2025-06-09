@@ -7,7 +7,7 @@ import hr.algebra.theloop.model.Player;
 
 import java.util.List;
 
-class DestroyDuplicateCard extends ArtifactCard {
+public class DestroyDuplicateCard extends ArtifactCard {
 
     public DestroyDuplicateCard(String name) {
         super(name, "Destroy 1 duplicate on current era", CardDimension.STRIPE);
@@ -20,13 +20,25 @@ class DestroyDuplicateCard extends ArtifactCard {
 
         if (!duplicatesHere.isEmpty()) {
             Duplicate duplicateToDestroy = duplicatesHere.get(0);
-            gameState.removeDuplicate(playerEra, duplicateToDestroy);
-
-            System.out.println("💥 Destroyed duplicate " + duplicateToDestroy.getDisplayName() +
-                    " at " + playerEra.getDisplayName() + "!");
+            executeWithDuplicate(gameState, player, playerEra, duplicateToDestroy);
         }
 
         exhaust();
+    }
+
+    public boolean executeWithDuplicate(GameState gameState, Player player, Era sourceEra, Duplicate selectedDuplicate) {
+        List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(sourceEra);
+
+        if (!duplicatesHere.contains(selectedDuplicate)) {
+            System.out.println("❌ Selected duplicate not found at " + sourceEra.getDisplayName());
+            return false;
+        }
+
+        gameState.removeDuplicate(sourceEra, selectedDuplicate);
+        System.out.println("💥 Destroyed " + selectedDuplicate.getDisplayName() +
+                " at " + sourceEra.getDisplayName() + "!");
+
+        return true;
     }
 
     @Override

@@ -7,7 +7,7 @@ import hr.algebra.theloop.model.Player;
 
 import java.util.List;
 
-class PullDuplicateCard extends ArtifactCard {
+public class PullDuplicateCard extends ArtifactCard {
 
     public PullDuplicateCard(String name) {
         super(name, "Pull 1 duplicate from adjacent era", CardDimension.STRIPE);
@@ -34,18 +34,39 @@ class PullDuplicateCard extends ArtifactCard {
         }
 
         if (duplicateToMove != null && sourceEra != null) {
-            gameState.removeDuplicate(sourceEra, duplicateToMove);
-            duplicateToMove.moveTo(playerEra);
-
-            if (duplicateToMove.isAtDestructionEra()) {
-                System.out.println("💥 Duplicate destroyed by temporal paradox at " + playerEra.getDisplayName() + "!");
-            } else {
-                gameState.addDuplicate(playerEra, duplicateToMove);
-                System.out.println("🔄 Pulled duplicate from " + sourceEra.getDisplayName() + " to " + playerEra.getDisplayName());
-            }
+            executeWithDuplicate(gameState, player, sourceEra, duplicateToMove);
         }
 
         exhaust();
+    }
+
+    public boolean executeWithDuplicate(GameState gameState, Player player, Era sourceEra, Duplicate selectedDuplicate) {
+        Era playerEra = player.getCurrentEra();
+
+        if (!playerEra.isAdjacentTo(sourceEra)) {
+            System.out.println("❌ " + sourceEra.getDisplayName() + " is not adjacent to player");
+            return false;
+        }
+
+        List<Duplicate> duplicatesAtSource = gameState.getDuplicatesAt(sourceEra);
+        if (!duplicatesAtSource.contains(selectedDuplicate)) {
+            System.out.println("❌ Selected duplicate not found at " + sourceEra.getDisplayName());
+            return false;
+        }
+
+        gameState.removeDuplicate(sourceEra, selectedDuplicate);
+        selectedDuplicate.moveTo(playerEra);
+
+        if (selectedDuplicate.isAtDestructionEra()) {
+            System.out.println("💥 " + selectedDuplicate.getDisplayName() +
+                    " destroyed by temporal paradox at " + playerEra.getDisplayName() + "!");
+        } else {
+            gameState.addDuplicate(playerEra, selectedDuplicate);
+            System.out.println("🔄 Pulled " + selectedDuplicate.getDisplayName() + " from " +
+                    sourceEra.getDisplayName() + " to " + playerEra.getDisplayName());
+        }
+
+        return true;
     }
 
     @Override

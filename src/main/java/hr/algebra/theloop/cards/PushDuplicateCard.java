@@ -18,27 +18,42 @@ public class PushDuplicateCard extends ArtifactCard {
         Era playerEra = player.getCurrentEra();
         List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(playerEra);
 
-        if (!duplicatesHere.isEmpty()) {
-            Duplicate duplicateToMove = duplicatesHere.get(0);
-
-            Era nextEra = playerEra.getNext();
-            Era prevEra = playerEra.getPrevious();
-
-            Era targetEra = gameState.getRifts(nextEra) <= gameState.getRifts(prevEra) ? nextEra : prevEra;
-
-            gameState.removeDuplicate(playerEra, duplicateToMove);
-            duplicateToMove.moveTo(targetEra);
-            gameState.addDuplicate(targetEra, duplicateToMove);
-
-            if (duplicateToMove.isAtDestructionEra()) {
-                gameState.removeDuplicate(targetEra, duplicateToMove);
-                System.out.println("💥 Duplicate destroyed by temporal paradox at " + targetEra.getDisplayName() + "!");
-            } else {
-                System.out.println("🔄 Pushed duplicate from " + playerEra.getDisplayName() + " to " + targetEra.getDisplayName());
-            }
+        if (duplicatesHere.isEmpty()) {
+            System.out.println("❌ No duplicates to push at " + playerEra.getDisplayName());
+            return;
         }
 
+        Duplicate duplicateToMove = duplicatesHere.get(0);
+        executeWithDuplicate(gameState, player, playerEra, duplicateToMove);
         exhaust();
+    }
+
+    public boolean executeWithDuplicate(GameState gameState, Player player, Era sourceEra, Duplicate selectedDuplicate) {
+        List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(sourceEra);
+
+        if (!duplicatesHere.contains(selectedDuplicate)) {
+            System.out.println("❌ Selected duplicate not found at " + sourceEra.getDisplayName());
+            return false;
+        }
+
+        Era nextEra = sourceEra.getNext();
+        Era prevEra = sourceEra.getPrevious();
+
+        Era targetEra = gameState.getRifts(nextEra) <= gameState.getRifts(prevEra) ? nextEra : prevEra;
+
+        gameState.removeDuplicate(sourceEra, selectedDuplicate);
+        selectedDuplicate.moveTo(targetEra);
+
+        if (selectedDuplicate.isAtDestructionEra()) {
+            System.out.println("💥 " + selectedDuplicate.getDisplayName() +
+                    " destroyed by temporal paradox at " + targetEra.getDisplayName() + "!");
+        } else {
+            gameState.addDuplicate(targetEra, selectedDuplicate);
+            System.out.println("🔄 Pushed " + selectedDuplicate.getDisplayName() + " from " +
+                    sourceEra.getDisplayName() + " to " + targetEra.getDisplayName());
+        }
+
+        return true;
     }
 
     @Override

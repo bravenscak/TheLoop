@@ -1,3 +1,6 @@
+// 🛠️ UI MISSION UPDATE FIX
+// Add proper mission list refreshing to GameUIManager
+
 package hr.algebra.theloop.ui;
 
 import hr.algebra.theloop.model.Era;
@@ -112,6 +115,9 @@ public class GameUIManager {
         if (activeMissionsList == null) return;
 
         activeMissionsList.getItems().clear();
+
+        activeMissionsList.getItems().clear();
+
         List<Mission> missions = state.getActiveMissions();
 
         if (missions.isEmpty()) {
@@ -126,6 +132,10 @@ public class GameUIManager {
         if (completedMissionsLabel != null) {
             completedMissionsLabel.setText("Completed: " + state.getTotalMissionsCompleted() + "/4");
         }
+
+        activeMissionsList.refresh();
+
+        System.out.println("🎯 UI: Updated mission list with " + missions.size() + " missions");
     }
 
     private String formatMissionText(Mission mission) {
@@ -176,26 +186,4 @@ public class GameUIManager {
         }
     }
 
-    public void printDuplicateStatus(GameState state) {
-        System.out.println("\n=== DUPLICATE STATUS ===");
-        int totalDuplicates = 0;
-
-        for (Era era : Era.values()) {
-            List<Duplicate> duplicatesHere = state.getDuplicatesAt(era);
-            if (!duplicatesHere.isEmpty()) {
-                System.out.println(era.getDisplayName() + ":");
-                for (Duplicate dup : duplicatesHere) {
-                    System.out.println("  • " + dup.getDisplayName() +
-                            " → destroy at " + dup.getDestroyEra().getDisplayName());
-                    totalDuplicates++;
-                }
-            }
-        }
-
-        if (totalDuplicates == 0) {
-            System.out.println("No duplicates on board");
-        } else {
-            System.out.println("Total duplicates: " + totalDuplicates);
-        }
-    }
 }

@@ -16,7 +16,7 @@ public class MovementCard extends ArtifactCard {
     private final MovementEffect effect;
 
     public MovementCard(String name, int moveDistance) {
-        super(name, "Move up to " + moveDistance + " era(s)", CardDimension.SPIRAL);
+        super(name, "Move up to " + moveDistance + " era(s) - click target era", CardDimension.SPIRAL);
         this.moveDistance = moveDistance;
         this.effect = MovementEffect.MOVE_ADJACENT;
     }
@@ -29,44 +29,43 @@ public class MovementCard extends ArtifactCard {
 
     private static String generateDescription(MovementEffect effect) {
         return switch (effect) {
-            case MOVE_ADJACENT -> "Move to adjacent era";
-            case MOVE_TWO_ERAS -> "Move up to 2 eras";
-            case MOVE_AND_ADD_ENERGY -> "Move to adjacent era + add 1 energy";
+            case MOVE_ADJACENT -> "Move to adjacent era - click target";
+            case MOVE_TWO_ERAS -> "Move up to 2 eras - click target";
+            case MOVE_AND_ADD_ENERGY -> "Move to adjacent era + add 1 energy - click target";
         };
     }
 
     @Override
     public void execute(GameState gameState, Player player) {
+        System.out.println("🎯 Movement card selected - click target era to move!");
+        exhaust();
+    }
+
+    @Override
+    public boolean canExecute(GameState gameState, Player player) {
+        return !isExhausted();
+    }
+
+    public boolean executeMovement(GameState gameState, Player player, Era targetEra) {
         Era currentEra = player.getCurrentEra();
-        Era targetEra = null;
+
+        if (!isValidTarget(currentEra, targetEra)) {
+            System.out.println("❌ Invalid movement target for " + getName());
+            return false;
+        }
 
         switch (effect) {
             case MOVE_ADJACENT -> {
-                Era nextEra = currentEra.getNext();
-                Era prevEra = currentEra.getPrevious();
-
-                int nextRifts = gameState.getRifts(nextEra);
-                int prevRifts = gameState.getRifts(prevEra);
-
-                targetEra = (nextRifts <= prevRifts) ? nextEra : prevEra;
                 player.moveToEra(targetEra);
                 System.out.println("🚶 " + getName() + ": " + player.getName() + " moved to " + targetEra.getDisplayName());
             }
 
             case MOVE_TWO_ERAS -> {
-                targetEra = currentEra.getNext().getNext();
                 player.moveToEra(targetEra);
-                System.out.println("🚶 " + getName() + ": " + player.getName() + " moved 2 eras to " + targetEra.getDisplayName());
+                System.out.println("🚶 " + getName() + ": " + player.getName() + " moved to " + targetEra.getDisplayName());
             }
 
             case MOVE_AND_ADD_ENERGY -> {
-                Era nextEra = currentEra.getNext();
-                Era prevEra = currentEra.getPrevious();
-
-                int nextRifts = gameState.getRifts(nextEra);
-                int prevRifts = gameState.getRifts(prevEra);
-
-                targetEra = (nextRifts <= prevRifts) ? nextEra : prevEra;
                 player.moveToEra(targetEra);
                 gameState.addEnergy(targetEra, 1);
                 System.out.println("🚶⚡ " + getName() + ": " + player.getName() + " moved to " +
@@ -74,12 +73,27 @@ public class MovementCard extends ArtifactCard {
             }
         }
 
-        exhaust();
+        return true;
     }
 
-    @Override
-    public boolean canExecute(GameState gameState, Player player) {
-        return !isExhausted();
+    public boolean isValidTarget(Era currentEra, Era targetEra) {
+        return switch (effect) {
+            case MOVE_ADJACENT -> currentEra.isAdjacentTo(targetEra);
+            case MOVE_TWO_ERAS -> currentEra.distanceTo(targetEra) <= 2;
+            case MOVE_AND_ADD_ENERGY -> currentEra.isAdjacentTo(targetEra);
+        };
+    }
+
+    public Era[] getValidTargets(Era currentEra) {
+        return switch (effect) {
+            case MOVE_ADJACENT, MOVE_AND_ADD_ENERGY -> new Era[]{currentEra.getNext(), currentEra.getPrevious()};
+            case MOVE_TWO_ERAS -> {
+                Era[] allEras = Era.values();
+                yield java.util.Arrays.stream(allEras)
+                        .filter(era -> currentEra.distanceTo(era) <= 2 && !era.equals(currentEra))
+                        .toArray(Era[]::new);
+            }
+        };
     }
 
     public static MovementCard createTimeWalk() {

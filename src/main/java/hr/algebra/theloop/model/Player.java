@@ -1,3 +1,7 @@
+// 🛠️ PHASE 3: CARD CYCLING FIX
+// Fix deck/discard pile management and shuffling
+
+// 1. UPDATE Player.java - Better card cycling with debug
 package hr.algebra.theloop.model;
 
 import hr.algebra.theloop.cards.ArtifactCard;
@@ -7,6 +11,7 @@ import lombok.NonNull;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -73,28 +78,74 @@ public class Player implements Serializable {
     public void addCardToHand(ArtifactCard card) {
         if (hand.size() < 3) {
             hand.add(card);
+            System.out.println("🃏 Added to hand: " + card.getName() + " (Hand: " + hand.size() + "/3)");
         }
     }
 
     public void addCardToDeck(ArtifactCard card) {
         deck.add(card);
+        System.out.println("🃏 Added to deck: " + card.getName() + " (Deck: " + deck.size() + ")");
     }
 
     public void drawToFullHand() {
+        System.out.println("🃏 === DRAW TO FULL HAND ===");
+        System.out.println("🃏 Before: Hand=" + hand.size() + ", Deck=" + deck.size() + ", Discard=" + discardPile.size());
+
         while (hand.size() < 3) {
             if (deck.isEmpty() && !discardPile.isEmpty()) {
+                System.out.println("🔄 Deck empty! Shuffling discard pile into deck...");
+                System.out.println("🃏 Discard pile contents:");
+                for (ArtifactCard card : discardPile) {
+                    System.out.println("  - " + card.getName() + " [" + (card.isExhausted() ? "Exhausted" : "Ready") + "]");
+                    card.ready();
+                }
+
                 deck.addAll(discardPile);
                 discardPile.clear();
-                java.util.Collections.shuffle(deck);
+                Collections.shuffle(deck);
+                System.out.println("🔄 Shuffled! New deck size: " + deck.size());
             }
 
             if (deck.isEmpty()) {
+                System.out.println("⚠️ No more cards to draw! Hand: " + hand.size() + "/3");
                 break;
             }
 
             ArtifactCard card = deck.remove(0);
             card.ready();
             hand.add(card);
+            System.out.println("🃏 Drew: " + card.getName() + " (Hand: " + hand.size() + "/3)");
+        }
+
+        System.out.println("🃏 After: Hand=" + hand.size() + ", Deck=" + deck.size() + ", Discard=" + discardPile.size());
+    }
+
+    public void discardHand() {
+        System.out.println("🃏 === DISCARDING HAND ===");
+        for (ArtifactCard card : hand) {
+            System.out.println("🗑️ Discarding: " + card.getName() + " [" + (card.isExhausted() ? "Exhausted" : "Ready") + "]");
+            discardPile.add(card);
+        }
+        hand.clear();
+        System.out.println("🗑️ Hand cleared. Discard pile: " + discardPile.size() + " cards");
+    }
+
+    public void printDeckState() {
+        System.out.println("🃏 === DECK STATE for " + name + " ===");
+        System.out.println("Hand (" + hand.size() + "):");
+        for (ArtifactCard card : hand) {
+            System.out.println("  - " + card.getName() + " [" + (card.isExhausted() ? "Exhausted" : "Ready") + "]");
+        }
+        System.out.println("Deck (" + deck.size() + "):");
+        for (int i = 0; i < Math.min(deck.size(), 5); i++) {
+            System.out.println("  - " + deck.get(i).getName());
+        }
+        if (deck.size() > 5) {
+            System.out.println("  ... and " + (deck.size() - 5) + " more");
+        }
+        System.out.println("Discard (" + discardPile.size() + "):");
+        for (ArtifactCard card : discardPile) {
+            System.out.println("  - " + card.getName() + " [" + (card.isExhausted() ? "Exhausted" : "Ready") + "]");
         }
     }
 
@@ -159,8 +210,8 @@ public class Player implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("%s @ %s [Hand: %d, Deck: %d, Battery: %s]",
-                name, currentEra.getDisplayName(), hand.size(), deck.size(),
+        return String.format("%s @ %s [Hand: %d, Deck: %d, Discard: %d, Battery: %s]",
+                name, currentEra.getDisplayName(), hand.size(), deck.size(), discardPile.size(),
                 batteriesFull ? "🔋 Full" : "🪫 Used");
     }
 }

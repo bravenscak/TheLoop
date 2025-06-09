@@ -154,18 +154,22 @@ public class GameEngine {
     public void endPlayerTurn() {
         if (!waitingForPlayerInput) return;
 
+        System.out.println("🎮 === END PLAYER TURN ===");
         waitingForPlayerInput = false;
 
         for (Player player : players) {
-            List<ArtifactCard> handCopy = new ArrayList<>(player.getHand());
-            player.getDiscardPile().addAll(handCopy);
-            player.getHand().clear();
+            System.out.println("🃏 Processing turn end for: " + player.getName());
+
+            player.discardHand();
 
             player.rechargeBatteries();
             player.drawToFullHand();
+
+            player.printDeckState();
         }
 
         gameState.nextTurn();
+        System.out.println("🎮 Turn ended. New turn: " + gameState.getTurnNumber());
     }
 
     public boolean spawnDuplicate(Era era) {
