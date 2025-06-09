@@ -43,9 +43,18 @@ public class GameEngine {
     }
 
     private void giveStartingCards(Player player) {
-        List<ArtifactCard> startingCards = CardFactory.createRandomStartingDeck();
-        for (ArtifactCard card : startingCards) {
+        List<ArtifactCard> allStartingCards = CardFactory.createRandomStartingDeck();
+
+        for (int i = 0; i < Math.min(3, allStartingCards.size()); i++) {
+            ArtifactCard card = allStartingCards.get(i);
+            card.ready();
             player.addCardToHand(card);
+        }
+
+        for (int i = 3; i < allStartingCards.size(); i++) {
+            ArtifactCard card = allStartingCards.get(i);
+            card.ready();
+            player.addCardToDeck(card);
         }
     }
 
@@ -58,10 +67,6 @@ public class GameEngine {
         missionManager.initializeMissions(gameState);
         getCurrentPlayer().setCurrentPlayer(true);
         waitingForPlayerInput = true;
-
-        System.out.println("🎮 THE LOOP GAME STARTED!");
-        printGameStatus();
-        System.out.println("⏳ Waiting for player actions...");
     }
 
     public void processTurn() {
@@ -70,7 +75,6 @@ public class GameEngine {
         drFooAI.executeDrFooPhase(gameState);
         cardAcquisitionManager.addRandomCardsToEras(gameState, 1);
         waitingForPlayerInput = true;
-        System.out.println("⏳ Waiting for player actions...");
     }
 
     public boolean playCard(Player player, int cardIndex, Era targetEra) {
@@ -85,13 +89,11 @@ public class GameEngine {
 
         ArtifactCard card = hand.get(cardIndex);
         if (!card.canExecute(gameState, player)) {
-            System.out.println("❌ Cannot play " + card.getName());
             return false;
         }
 
         card.execute(gameState, player);
         card.exhaust();
-        System.out.println("✅ Played: " + card.getName() + " [EXHAUSTED]");
 
         missionManager.checkAllMissions(gameState, player, card.getClass().getSimpleName());
         checkGameEndConditions();
@@ -106,20 +108,16 @@ public class GameEngine {
 
         Era currentEra = player.getCurrentEra();
         if (!currentEra.isAdjacentTo(targetEra)) {
-            System.out.println("❌ Cannot move to " + targetEra.getDisplayName());
             return false;
         }
 
         if (player.canUseFreeBattery()) {
             player.useFreeBattery();
             player.moveToEra(targetEra);
-            System.out.println("🚶 " + player.getName() + " moved to " + targetEra.getDisplayName() + " (free)");
         } else if (gameState.getEnergy(currentEra) > 0) {
             gameState.removeEnergy(currentEra, 1);
             player.moveToEra(targetEra);
-            System.out.println("🚶 " + player.getName() + " moved to " + targetEra.getDisplayName() + " (1 energy)");
         } else {
-            System.out.println("❌ No energy to move");
             return false;
         }
 
@@ -130,19 +128,11 @@ public class GameEngine {
     public boolean acquireCard(Player player) {
         Era playerEra = player.getCurrentEra();
         ArtifactCard acquiredCard = cardAcquisitionManager.acquireCard(playerEra, player);
-
-        if (acquiredCard != null) {
-            System.out.println("🎴 " + player.getName() + " acquired: " + acquiredCard.getName());
-            return true;
-        } else {
-            System.out.println("❌ No cards available at " + playerEra.getDisplayName());
-            return false;
-        }
+        return acquiredCard != null;
     }
 
     public boolean performLoop(Player player, CardDimension dimension) {
         if (!player.canPerformLoop(dimension, gameState)) {
-            System.out.println("❌ Cannot perform LOOP on " + dimension.getDisplayName() + " cards");
             return false;
         }
 
@@ -151,75 +141,46 @@ public class GameEngine {
 
         gameState.removeEnergy(playerEra, loopCost);
 
-        int readiedCards = 0;
         for (ArtifactCard card : player.getHand()) {
             if (card.getDimension() == dimension && card.isExhausted()) {
                 card.ready();
-                readiedCards++;
             }
         }
 
         player.setLoopsPerformedThisTurn(player.getLoopsPerformedThisTurn() + 1);
-        System.out.println("🔄 LOOP: Readied " + readiedCards + " " + dimension.getDisplayName() + " cards");
         return true;
     }
 
     public void endPlayerTurn() {
         if (!waitingForPlayerInput) return;
 
-        System.out.println("🔧 DEBUG: endPlayerTurn() started");
         waitingForPlayerInput = false;
 
         for (Player player : players) {
-            System.out.println("🔧 DEBUG: Player hand before: " + player.getHand().stream().map(ArtifactCard::getName).toList());
-            System.out.println("🔧 DEBUG: Player deck size: " + player.getDeckSize());
-            System.out.println("🔧 DEBUG: Player discard size: " + player.getDiscardPileSize());
-
-            // Move all cards to discard
             List<ArtifactCard> handCopy = new ArrayList<>(player.getHand());
-            for (ArtifactCard card : handCopy) {
-                player.getDiscardPile().add(card);
-                System.out.println("🔧 DEBUG: Discarded " + card.getName());
-            }
+            player.getDiscardPile().addAll(handCopy);
             player.getHand().clear();
 
-            System.out.println("🔧 DEBUG: Hand cleared, discard size now: " + player.getDiscardPileSize());
-
             player.rechargeBatteries();
-
-            // Draw 3 new cards
-            for (int i = 0; i < 3; i++) {
-                System.out.println("🔧 DEBUG: Attempting to draw card " + (i+1));
-                player.drawCard();
-            }
-
-            System.out.println("🔧 DEBUG: Player hand after: " + player.getHand().stream().map(ArtifactCard::getName).toList());
+            player.drawToFullHand();
         }
 
         gameState.nextTurn();
-        printGameStatus();
-        System.out.println("🔄 Player turn ended. Click 'End Turn' for Dr. Foo phase.");
     }
 
     public boolean spawnDuplicate(Era era) {
         if (duplicatesInBag <= 0) {
-            System.out.println("🚫 Cannot spawn duplicate - bag is empty!");
             return false;
         }
 
         Duplicate newDuplicate = new Duplicate(era);
         gameState.addDuplicate(era, newDuplicate);
         duplicatesInBag--;
-
-        System.out.println("🔵 Duplicate spawned at " + era.getDisplayName() +
-                " (destroy at " + newDuplicate.getDestroyEra().getDisplayName() +
-                ") [Bag: " + duplicatesInBag + "/" + MAX_DUPLICATES_IN_BAG + "]");
         return true;
     }
 
     public void destroyDuplicate(Duplicate duplicate) {
         duplicatesInBag++;
-        System.out.println("💥 Duplicate destroyed - returned to bag [Bag: " + duplicatesInBag + "/" + MAX_DUPLICATES_IN_BAG + "]");
     }
 
     private void checkGameEndConditions() {
@@ -236,28 +197,6 @@ public class GameEngine {
         if (gameState.getCurrentCycle() > 3) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
             return;
-        }
-    }
-
-    public void printGameStatus() {
-        System.out.println("\n=== GAME STATUS ===");
-        System.out.println(gameState.toString());
-        System.out.println("🎒 Duplicates in bag: " + duplicatesInBag + "/" + MAX_DUPLICATES_IN_BAG);
-
-        for (Player player : players) {
-            System.out.println("  " + player.toString());
-        }
-
-        System.out.println("Vortexes: " + gameState.getVortexCount() + "/3");
-        System.out.println("Active Missions: " + gameState.getActiveMissions().size());
-
-        int totalDuplicates = getTotalDuplicatesOnBoard();
-        if (totalDuplicates > 0) {
-            System.out.println("Total Duplicates: " + totalDuplicates);
-        }
-
-        if (gameState.isGameOver()) {
-            System.out.println("\n" + gameState.getGameResult().getMessage());
         }
     }
 

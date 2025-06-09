@@ -73,8 +73,6 @@ public class Player implements Serializable {
     public void addCardToHand(ArtifactCard card) {
         if (hand.size() < 3) {
             hand.add(card);
-        } else {
-            deck.add(card);
         }
     }
 
@@ -82,27 +80,21 @@ public class Player implements Serializable {
         deck.add(card);
     }
 
-    public void drawCard() {
-        System.out.println("🔧 DEBUG: drawCard() called");
-        System.out.println("🔧 DEBUG: deck size: " + deck.size() + ", discard size: " + discardPile.size() + ", hand size: " + hand.size());
+    public void drawToFullHand() {
+        while (hand.size() < 3) {
+            if (deck.isEmpty() && !discardPile.isEmpty()) {
+                deck.addAll(discardPile);
+                discardPile.clear();
+                java.util.Collections.shuffle(deck);
+            }
 
-        if (deck.isEmpty() && !discardPile.isEmpty()) {
-            System.out.println("🔄 DEBUG: Reshuffling discard pile into deck");
-            deck.addAll(discardPile);
-            discardPile.clear();
-            java.util.Collections.shuffle(deck);
-            System.out.println("🔧 DEBUG: After reshuffle - deck size: " + deck.size());
-        }
+            if (deck.isEmpty()) {
+                break;
+            }
 
-        if (!deck.isEmpty() && hand.size() < 3) {
             ArtifactCard card = deck.remove(0);
-            card.ready(); // Ensure card is ready
+            card.ready();
             hand.add(card);
-            System.out.println("📋 DEBUG: Drew: " + card.getName() + " (ready: " + !card.isExhausted() + ")");
-        } else if (deck.isEmpty() && discardPile.isEmpty()) {
-            System.out.println("❌ DEBUG: No cards available to draw!");
-        } else if (hand.size() >= 3) {
-            System.out.println("⚠️ DEBUG: Hand already full (" + hand.size() + "/3)");
         }
     }
 

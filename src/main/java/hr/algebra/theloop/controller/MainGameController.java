@@ -107,9 +107,6 @@ public class MainGameController implements Initializable {
             return;
         }
 
-        System.out.println("🎯 DEBUG: Before turn end - Missions: " +
-                gameEngine.getGameState().getActiveMissions().size());
-
         boolean success;
         if (gameEngine.isWaitingForPlayerInput()) {
             success = inputHandler.endPlayerTurn();
@@ -159,53 +156,21 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void newGame() {
-        System.out.println("🔧 DEBUG: newGame() started");
+        if (inputHandler != null) {
+            inputHandler.clearSelection();
+        }
+        if (handManager != null) {
+            handManager.clearAllSelections();
+        }
 
         setupGame();
         inputHandler = new PlayerInputHandler(gameEngine);
-        handManager.clearAllSelections();
-
-        System.out.println("🔧 DEBUG: circularBoard = " + circularBoard);
-
-        // Setup era handlers with debug
-        setupEraClickHandlersDebug();
+        setupCardClickHandlers();
+        setupEraClickHandlers();
 
         updateUI();
         endTurnButton.setDisable(false);
         gameRunning = true;
-
-        System.out.println("🆕 New game started!");
-    }
-
-    private void setupEraClickHandlersDebug() {
-        System.out.println("🔧 DEBUG: Setting up era handlers...");
-
-        if (circularBoard == null) {
-            System.out.println("❌ DEBUG: circularBoard is NULL!");
-            return;
-        }
-
-        for (Era era : Era.values()) {
-            SimpleEraView eraView = circularBoard.getEraView(era);
-            System.out.println("🔧 DEBUG: Era " + era + " view = " + eraView);
-
-            if (eraView != null) {
-                eraView.setOnMouseClicked(event -> {
-                    System.out.println("🖱️ DEBUG: ERA CLICKED: " + era);
-                    boolean success = inputHandler.handleEraClick(era);
-                    if (success) {
-                        updateUI();
-                        checkGameEnd();
-                    }
-                    event.consume();
-                });
-                System.out.println("✅ DEBUG: Handler set for " + era);
-            } else {
-                System.out.println("❌ DEBUG: EraView NULL for " + era);
-            }
-        }
-
-        System.out.println("🔧 DEBUG: Era handlers setup complete");
     }
 
     private void updateUI() {
@@ -228,24 +193,10 @@ public class MainGameController implements Initializable {
             gameRunning = false;
             endTurnButton.setDisable(true);
             loopButton.setDisable(true);
-
-            System.out.println("🎮 GAME OVER: " + gameEngine.getGameState().getGameResult().getMessage());
         }
     }
 
     public GameEngine getGameEngine() {
         return gameEngine;
-    }
-
-    public GameUIManager getUiManager() {
-        return uiManager;
-    }
-
-    public PlayerInputHandler getInputHandler() {
-        return inputHandler;
-    }
-
-    public PlayerHandManager getHandManager() {
-        return handManager;
     }
 }
