@@ -6,9 +6,11 @@ import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.thread.ThreadingManager;
 import hr.algebra.theloop.ui.GameUIManager;
 import hr.algebra.theloop.ui.PlayerHandManager;
+import hr.algebra.theloop.utils.DocumentationUtils;
 import hr.algebra.theloop.view.CircularBoardView;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -180,6 +182,28 @@ public class MainGameController implements Initializable {
     public void shutdown() {
         if (threadingManager != null) {
             threadingManager.stop();
+        }
+    }
+
+    @FXML
+    private void generateDocumentation() {
+        try {
+            DocumentationUtils.generateDocumentation();
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Documentation Generated");
+            alert.setHeaderText("Success!");
+            alert.setContentText("HTML documentation generated successfully!\nLocation: doc/documentation.html");
+            alert.showAndWait();
+
+        } catch (Exception e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Documentation generation failed");
+            alert.setContentText("Error: " + e.getMessage());
+            alert.showAndWait();
+
+            e.printStackTrace();
         }
     }
 }

@@ -60,6 +60,7 @@
                 <Button text="Save Game" onAction="#saveGame" prefWidth="300" />
                 <Button text="Load Game" onAction="#loadGame" prefWidth="300" />
                 <Button text="New Game" onAction="#newGame" prefWidth="300" />
+                <Button text="Generate Docs" onAction="#generateDocumentation" prefWidth="300" />
             </VBox>
 
         </VBox>
