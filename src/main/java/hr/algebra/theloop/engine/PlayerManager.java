@@ -10,7 +10,6 @@ import hr.algebra.theloop.utils.GameLogger;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class PlayerManager {
 
     private final List<Player> players;

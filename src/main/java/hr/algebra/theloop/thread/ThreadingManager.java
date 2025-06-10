@@ -55,18 +55,6 @@ public class ThreadingManager {
         }
     }
 
-    public void pause() {
-        if (isRunning) {
-            autoSaveTimeline.pause();
-        }
-    }
-
-    public void resume() {
-        if (isRunning) {
-            autoSaveTimeline.play();
-        }
-    }
-
     public void forceAutoSave() {
         GameLogger.gameFlow("Manual save requested");
         performAutoSave();

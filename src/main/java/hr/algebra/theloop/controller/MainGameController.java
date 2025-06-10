@@ -25,7 +25,6 @@ public class MainGameController implements Initializable {
     @FXML private Label turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel;
     @FXML private Label playerNameLabel, playerLocationLabel;
     @FXML private Label completedMissionsLabel, duplicatesLabel, availableCardsLabel;
-    @FXML private Label multiplayerInfoLabel;
     @FXML private Button endTurnButton, loopButton;
     @FXML private ListView<String> activeMissionsList;
     @FXML private TextArea multiplayerInfoTextArea;
@@ -54,17 +53,15 @@ public class MainGameController implements Initializable {
         String playerModeStr = System.getProperty("playerMode", "SINGLE_PLAYER");
         PlayerMode playerMode = PlayerMode.valueOf(playerModeStr);
 
-        System.out.println("🎮 Initializing game in " + playerMode + " mode");
-
         gameEngine.setPlayerMode(playerMode);
         gameEngine.setupMultiplayerPlayers(playerMode);
+
+        gameEngine.setUIUpdateCallback(this::updateUI);
 
         multiplayerHelper = new MultiplayerUIHelper(gameEngine);
 
         gameEngine.startGame();
         gameRunning = true;
-
-        System.out.println("✅ Game initialized successfully");
 
         if (playerMode != PlayerMode.SINGLE_PLAYER) {
             Player localPlayer = gameEngine.getLocalPlayer();
@@ -99,10 +96,7 @@ public class MainGameController implements Initializable {
             var eraView = circularBoard.getEraView(era);
             if (eraView != null) {
                 eraView.setOnMouseClicked(event -> {
-                    Player localPlayer = gameEngine.getLocalPlayer();
-                    boolean success = gameEngine.movePlayer(localPlayer, era);
-
-                    if (success) {
+                    if (inputHandler.handleEraClick(era)) {
                         updateUI();
                         checkGameEnd();
                     }
@@ -116,28 +110,34 @@ public class MainGameController implements Initializable {
     private void endTurn() {
         if (!gameRunning || gameEngine.isGameOver()) return;
 
-        gameEngine.endPlayerTurn();
-        updateUI();
-        checkGameEnd();
+        if (gameEngine.isMultiplayer() && gameEngine.getLocalPlayerIndex() != 0) {
+            System.out.println("❌ Only Player 1 can end turn!");
+            return;
+        }
+
+        boolean success = gameEngine.isWaitingForPlayerInput() ?
+                inputHandler.endPlayerTurn() : inputHandler.processNextTurn();
+
+        if (success) {
+            updateUI();
+            checkGameEnd();
+        }
     }
 
     @FXML
     private void performLoop() {
-        if (!gameRunning || gameEngine.isGameOver()) return;
-
-        gameEngine.processTurn();
-        updateUI();
+        if (gameRunning && !gameEngine.isGameOver() && inputHandler.performLoop()) {
+            updateUI();
+        }
     }
 
     @FXML
     private void acquireCard() {
-        if (!gameRunning || gameEngine.isGameOver()) return;
-
-        Player localPlayer = gameEngine.getLocalPlayer();
-        boolean success = gameEngine.acquireCard(localPlayer);
-
-        if (success) {
-            updateUI();
+        if (gameRunning && !gameEngine.isGameOver()) {
+            Player playerToAcquire = multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : gameEngine.getCurrentPlayer();
+            if (gameEngine.acquireCard(playerToAcquire)) {
+                updateUI();
+            }
         }
     }
 
@@ -168,17 +168,26 @@ public class MainGameController implements Initializable {
 
     @FXML
     private void newGame() {
+        if (threadingManager != null) threadingManager.stop();
+        if (gameEngine != null) gameEngine.shutdown();
+
         gameEngine = actionsHandler.handleNewGame();
+        multiplayerHelper = new MultiplayerUIHelper(gameEngine);
+        gameEngine.setUIUpdateCallback(this::updateUI); // VAŽNO!
         inputHandler = new PlayerInputHandler(gameEngine);
         actionsHandler.updateGameEngine(gameEngine);
         handManager.clearAllSelections();
 
         initializeThreading();
         setupEventHandlers();
+
+        gameRunning = true;
+        endTurnButton.setDisable(false);
         updateUI();
 
-        endTurnButton.setDisable(false);
-        gameRunning = true;
+        if (gameEngine.isMultiplayer()) {
+            gameEngine.broadcastCompleteGameState("New Game Started", "System");
+        }
     }
 
     private void updateUI() {
@@ -188,20 +197,55 @@ public class MainGameController implements Initializable {
             multiplayerHelper.updateMultiplayerInfoLabel(multiplayerInfoTextArea);
         }
 
+        Player displayPlayer = multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : gameEngine.getCurrentPlayer();
+
         uiManager.updateAll(
                 gameEngine.getGameState(),
-                multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : gameEngine.getCurrentPlayer(),
+                displayPlayer,
                 gameEngine.isGameOver(),
                 gameEngine.isWaitingForPlayerInput(),
                 gameEngine.getDuplicatesInBag(),
                 gameEngine.getTotalDuplicatesOnBoard()
         );
 
-        Player displayPlayer = multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : gameEngine.getCurrentPlayer();
         handManager.updateHand(displayPlayer);
+        updatePlayerPositions();
+    }
 
-        updatePlayerDisplay(displayPlayer);
-        updatePlayerPositions(); // DODAJ
+    private void updatePlayerPositions() {
+        if (gameEngine == null || !gameEngine.isMultiplayer()) return;
+
+        clearPlayerIndicators();
+
+        for (int i = 0; i < gameEngine.getPlayerManager().getPlayers().size(); i++) {
+            Player player = gameEngine.getPlayerManager().getPlayers().get(i);
+            boolean isLocal = (i == gameEngine.getLocalPlayerIndex());
+            addPlayerIndicatorToEra(player.getCurrentEra(), player.getName(), isLocal);
+        }
+    }
+
+    private void clearPlayerIndicators() {
+        for (Era era : Era.values()) {
+            var eraView = circularBoard.getEraView(era);
+            if (eraView != null) {
+                eraView.getStyleClass().removeAll("era-has-bruno", "era-has-alice", "era-has-local-player");
+            }
+        }
+    }
+
+    private void addPlayerIndicatorToEra(Era era, String playerName, boolean isLocal) {
+        var eraView = circularBoard.getEraView(era);
+        if (eraView != null) {
+            if (playerName.contains("Bruno")) {
+                eraView.getStyleClass().add("era-has-bruno");
+            } else if (playerName.contains("Alice")) {
+                eraView.getStyleClass().add("era-has-alice");
+            }
+
+            if (isLocal) {
+                eraView.getStyleClass().add("era-has-local-player");
+            }
+        }
     }
 
     private void checkGameEnd() {
@@ -247,82 +291,6 @@ public class MainGameController implements Initializable {
             alert.showAndWait();
 
             e.printStackTrace();
-        }
-    }
-
-    private void updatePlayerDisplay(Player playerToDisplay) {
-        if (gameEngine == null || playerToDisplay == null) return;
-
-        Player currentPlayer = gameEngine.getCurrentPlayer();
-        boolean isLocalPlayerTurn = multiplayerHelper != null ? multiplayerHelper.isLocalPlayerTurn() : true;
-
-        playerLocationLabel.setText(playerToDisplay.getCurrentEra().getDisplayName());
-
-        if (multiplayerHelper != null && gameEngine.isMultiplayer()) {
-            updateMultiplayerInfo();
-        }
-    }
-
-    private void updateMultiplayerInfo() {
-        if (multiplayerHelper != null) {
-            String info = multiplayerHelper.generateMultiplayerInfo();
-            if (multiplayerInfoLabel != null) {
-                multiplayerInfoLabel.setText(info);
-            }
-        }
-    }
-
-    private void updatePlayerPositions() {
-        if (gameEngine == null) return;
-
-        clearPlayerIndicators();
-
-        for (int i = 0; i < gameEngine.getPlayerManager().getPlayers().size(); i++) {
-            Player player = gameEngine.getPlayerManager().getPlayers().get(i);
-            boolean isLocal = (i == gameEngine.getLocalPlayerIndex());
-
-            addPlayerIndicatorToEra(player.getCurrentEra(), player.getName(), isLocal);
-        }
-    }
-
-    private void clearPlayerIndicators() {
-        for (Era era : Era.values()) {
-            var eraView = circularBoard.getEraView(era);
-            if (eraView != null) {
-                eraView.getStyleClass().removeAll("era-has-bruno", "era-has-alice", "era-has-local-player");
-            }
-        }
-    }
-
-    private void addPlayerIndicatorToEra(Era era, String playerName, boolean isLocal) {
-        var eraView = circularBoard.getEraView(era);
-        if (eraView != null) {
-            if (playerName.contains("Bruno")) {
-                eraView.getStyleClass().add("era-has-bruno");
-            } else if (playerName.contains("Alice")) {
-                eraView.getStyleClass().add("era-has-alice");
-            }
-
-            if (isLocal) {
-                eraView.getStyleClass().add("era-has-local-player");
-            }
-        }
-    }
-
-    @FXML
-    private void onCardPlay() {
-        if (!gameRunning || gameEngine.isGameOver()) return;
-
-        Player localPlayer = gameEngine.getLocalPlayer();
-
-        if (!localPlayer.getHand().isEmpty()) {
-            Era targetEra = localPlayer.getCurrentEra();
-            boolean success = gameEngine.playCard(localPlayer, 0, targetEra);
-
-            if (success) {
-                updateUI();
-                checkGameEnd();
-            }
         }
     }
 }

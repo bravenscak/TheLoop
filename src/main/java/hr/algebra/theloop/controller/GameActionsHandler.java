@@ -3,6 +3,7 @@ package hr.algebra.theloop.controller;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
+import hr.algebra.theloop.model.PlayerMode;
 import hr.algebra.theloop.persistence.GamePersistenceManager;
 import hr.algebra.theloop.thread.ThreadingManager;
 import hr.algebra.theloop.utils.GameLogger;
@@ -42,11 +43,7 @@ public class GameActionsHandler {
 
         if (result.isPresent() && !result.get().trim().isEmpty()) {
             String saveName = result.get().trim();
-            boolean success = GamePersistenceManager.saveGameManually(gameEngine.getGameState(), saveName);
-
-            if (!success) {
-                GameLogger.error("Manual save failed");
-            }
+            GamePersistenceManager.saveGameManually(gameEngine.getGameState(), saveName);
         } else {
             GamePersistenceManager.saveGameWithTimestamp(gameEngine.getGameState());
         }
@@ -85,51 +82,18 @@ public class GameActionsHandler {
             threadingManager.stop();
         }
 
+        String playerModeStr = System.getProperty("playerMode", "SINGLE_PLAYER");
+        PlayerMode playerMode = PlayerMode.valueOf(playerModeStr);
+
         GameEngine newGameEngine = new GameEngine();
-        newGameEngine.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
+
+        newGameEngine.setPlayerMode(playerMode);
+        newGameEngine.setupMultiplayerPlayers(playerMode);
+
         newGameEngine.startGame();
 
-        GameLogger.gameFlow("New game started");
+        GameLogger.gameFlow("New game started in " + playerMode + " mode");
         return newGameEngine;
-    }
-
-    public void handleEndTurn() {
-        if (gameEngine.isGameOver()) return;
-
-        boolean success;
-        if (gameEngine.isWaitingForPlayerInput()) {
-            success = true; // Placeholder
-        } else {
-            success = true; // Placeholder
-        }
-
-        if (success && uiUpdateCallback != null) {
-            uiUpdateCallback.run();
-
-            if (gameEngine.isGameOver() && gameEndCallback != null) {
-                gameEndCallback.run();
-            }
-        }
-    }
-
-    public void handlePerformLoop() {
-        if (gameEngine.isGameOver()) return;
-
-        boolean success = true; // Placeholder
-
-        if (success && uiUpdateCallback != null) {
-            uiUpdateCallback.run();
-        }
-    }
-
-    public void handleAcquireCard() {
-        if (gameEngine.isGameOver()) return;
-
-        boolean success = gameEngine.acquireCard(gameEngine.getCurrentPlayer());
-
-        if (success && uiUpdateCallback != null) {
-            uiUpdateCallback.run();
-        }
     }
 
     public void updateGameEngine(GameEngine newGameEngine) {

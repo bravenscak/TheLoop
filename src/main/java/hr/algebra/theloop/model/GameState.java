@@ -29,6 +29,8 @@ public class GameState implements Serializable {
     private List<PlayerData> playerStates;
     private int currentPlayerIndex;
 
+    private long randomSeed = System.currentTimeMillis();
+
     public GameState() {
         this.drFooPosition = Era.DAWN_OF_TIME;
         this.drFooMovesThisCycle = 0;
@@ -155,11 +157,18 @@ public class GameState implements Serializable {
     public int getTotalEnergy() { return resources.getTotalEnergy(); }
     public Era getEraWithMostRifts() { return resources.getEraWithMostRifts(); }
     public Era getEraWithMostEnergy() { return resources.getEraWithMostEnergy(); }
+    public long getRandomSeed() { return randomSeed; }
+    public void setRandomSeed(long seed) { this.randomSeed = seed; }
 
     @Override
     public String toString() {
         return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3]",
                 turnNumber, drFooPosition.getDisplayName(), currentCycle,
                 totalMissionsCompleted, resources.getVortexCount());
+    }
+
+    public void clearDuplicatesAt(Era era) {
+        List<Duplicate> duplicatesAtEra = resources.getDuplicatesAt(era);
+        duplicatesAtEra.clear();
     }
 }

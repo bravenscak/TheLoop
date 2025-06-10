@@ -239,49 +239,48 @@
 }
 
 .era-has-bruno {
-    -fx-border-color: #3498db !important;
-    -fx-border-width: 3px !important;
+    -fx-border-color: #00BFFF !important;
+    -fx-border-width: 4px !important;
+    -fx-effect: dropshadow(gaussian, #00BFFF, 8, 0.7, 0, 0);
 }
 
 .era-has-alice {
-    -fx-border-color: #e74c3c !important;
-    -fx-border-width: 3px !important;
+    -fx-border-color: #FF1493 !important;
+    -fx-border-width: 4px !important;
+    -fx-effect: dropshadow(gaussian, #FF1493, 8, 0.7, 0, 0);
 }
 
 .era-has-local-player {
-    -fx-effect: dropshadow(gaussian, #f1c40f, 10, 0.8, 0, 0);
+    -fx-effect: dropshadow(gaussian, #FFD700, 12, 0.9, 0, 0);
+    -fx-border-width: 5px !important;
 }
 
 .era-has-bruno.era-has-alice {
-    -fx-border-color: linear-gradient(to right, #3498db 50%, #e74c3c 50%) !important;
-    -fx-border-width: 4px !important;
+    -fx-border-color: linear-gradient(to right, #00BFFF 50%, #FF1493 50%) !important;
+    -fx-border-width: 5px !important;
+    -fx-effect: dropshadow(gaussian, #FFFFFF, 10, 0.8, 0, 0);
 }
 
 .era-button {
-    -fx-border-radius: 10px;
-    -fx-background-radius: 10px;
-    -fx-padding: 5px;
-}
-
-.multiplayer-info {
-    -fx-background-color: rgba(0, 0, 0, 0.7);
-    -fx-text-fill: white;
+    -fx-border-radius: 15px;
+    -fx-background-radius: 15px;
     -fx-padding: 8px;
-    -fx-background-radius: 5px;
-    -fx-font-size: 12px;
-}
-
-.player-legend {
-    -fx-spacing: 10px;
-    -fx-padding: 5px;
 }
 
 .legend-bruno {
-    -fx-text-fill: #3498db;
+    -fx-text-fill: #00BFFF;
     -fx-font-weight: bold;
+    -fx-font-size: 14px;
 }
 
 .legend-alice {
-    -fx-text-fill: #e74c3c;
+    -fx-text-fill: #FF1493;
     -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+
+.legend-local {
+    -fx-text-fill: #FFD700;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
 }

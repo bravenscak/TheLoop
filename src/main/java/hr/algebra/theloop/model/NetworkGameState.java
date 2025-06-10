@@ -4,8 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -22,7 +23,6 @@ public class NetworkGameState implements Serializable {
     private int[] riftsPerEra;
     private int[] energyPerEra;
     private boolean[] vortexPerEra;
-
     private int[] duplicateCountPerEra;
 
     private List<PlayerData> playerStates;
@@ -31,6 +31,8 @@ public class NetworkGameState implements Serializable {
 
     private String lastAction;
     private String lastPlayerName;
+
+    private Map<Era, Integer> duplicateCounts;
 
     public static NetworkGameState fromGameState(GameState gameState, PlayerMode playerMode,
                                                  String lastAction, String lastPlayerName) {
@@ -50,6 +52,11 @@ public class NetworkGameState implements Serializable {
             duplicates[i] = gameState.getDuplicateCount(era);
         }
 
+        Map<Era, Integer> dupCounts = new HashMap<>();
+        for (Era era : Era.values()) {
+            dupCounts.put(era, gameState.getDuplicateCount(era));
+        }
+
         return new NetworkGameState(
                 gameState.getTurnNumber(),
                 gameState.getDrFooPosition(),
@@ -64,7 +71,8 @@ public class NetworkGameState implements Serializable {
                 gameState.getCurrentPlayerIndex(),
                 playerMode,
                 lastAction,
-                lastPlayerName
+                lastPlayerName,
+                dupCounts
         );
     }
 
@@ -88,10 +96,24 @@ public class NetworkGameState implements Serializable {
             } else {
                 gameState.getResources().getVortexes().remove(era);
             }
+
+            int networkDuplicateCount = duplicateCountPerEra[i];
+            int currentDuplicateCount = gameState.getDuplicateCount(era);
+
+            if (networkDuplicateCount != currentDuplicateCount) {
+                gameState.clearDuplicatesAt(era);
+
+                for (int j = 0; j < networkDuplicateCount; j++) {
+                    gameState.addDuplicate(era, new Duplicate(era));
+                }
+            }
         }
 
         if (playerStates != null) {
             gameState.setPlayerStates(playerStates);
         }
     }
+
+    public Map<Era, Integer> getDuplicateCounts() { return duplicateCounts; }
+    public void setDuplicateCounts(Map<Era, Integer> counts) { this.duplicateCounts = counts; }
 }

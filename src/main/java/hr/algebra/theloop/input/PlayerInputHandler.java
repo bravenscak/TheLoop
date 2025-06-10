@@ -45,18 +45,18 @@ public class PlayerInputHandler {
     public boolean handleEraClick(Era era) {
         if (!canAcceptInput()) return false;
 
-        Player currentPlayer = gameEngine.getCurrentPlayer();
+        Player playerToControl = getPlayerToControl();
 
         if (hasSelectedCard()) {
             if (selectedCard.getCard() instanceof MovementCard) {
-                return cardActionHandler.handleMovementCard(currentPlayer, selectedCardIndex, era, selectedCard);
+                return cardActionHandler.handleMovementCard(playerToControl, selectedCardIndex, era, selectedCard);
             } else if (cardActionHandler.isDuplicateCard(selectedCard.getCard())) {
-                return cardActionHandler.handleDuplicateCard(currentPlayer, selectedCardIndex, era, selectedCard);
+                return cardActionHandler.handleDuplicateCard(playerToControl, selectedCardIndex, era, selectedCard);
             } else {
-                return cardActionHandler.handleRegularCard(currentPlayer, selectedCardIndex, era);
+                return cardActionHandler.handleRegularCard(playerToControl, selectedCardIndex, era);
             }
         } else {
-            return attemptRegularMovement(currentPlayer, era);
+            return attemptRegularMovement(playerToControl, era);
         }
     }
 
@@ -71,17 +71,17 @@ public class PlayerInputHandler {
     public boolean performLoop() {
         if (!canAcceptInput()) return false;
 
-        Player currentPlayer = gameEngine.getCurrentPlayer();
+        Player playerToControl = getPlayerToControl();
 
-        boolean hasExhaustedCards = currentPlayer.getHand().stream()
+        boolean hasExhaustedCards = playerToControl.getHand().stream()
                 .anyMatch(ArtifactCard::isExhausted);
 
         if (!hasExhaustedCards) {
             return false;
         }
 
-        int loopCost = currentPlayer.getLoopsPerformedThisTurn() + 1;
-        Era playerEra = currentPlayer.getCurrentEra();
+        int loopCost = playerToControl.getLoopsPerformedThisTurn() + 1;
+        Era playerEra = playerToControl.getCurrentEra();
         int availableEnergy = gameEngine.getGameState().getEnergy(playerEra);
 
         if (availableEnergy < loopCost) {
@@ -91,14 +91,14 @@ public class PlayerInputHandler {
         gameEngine.getGameState().removeEnergy(playerEra, loopCost);
 
         int readiedCards = 0;
-        for (ArtifactCard card : currentPlayer.getHand()) {
+        for (ArtifactCard card : playerToControl.getHand()) {
             if (card.isExhausted()) {
                 card.ready();
                 readiedCards++;
             }
         }
 
-        currentPlayer.setLoopsPerformedThisTurn(currentPlayer.getLoopsPerformedThisTurn() + 1);
+        playerToControl.setLoopsPerformedThisTurn(playerToControl.getLoopsPerformedThisTurn() + 1);
         return true;
     }
 
@@ -131,6 +131,10 @@ public class PlayerInputHandler {
 
     private boolean canAcceptInput() {
         return !gameEngine.isGameOver() && gameEngine.isWaitingForPlayerInput();
+    }
+
+    private Player getPlayerToControl() {
+        return gameEngine.isMultiplayer() ? gameEngine.getLocalPlayer() : gameEngine.getCurrentPlayer();
     }
 
     public boolean hasSelectedCard() {

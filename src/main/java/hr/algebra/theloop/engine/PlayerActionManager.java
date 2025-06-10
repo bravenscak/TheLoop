@@ -52,23 +52,35 @@ public class PlayerActionManager {
 
         Era currentEra = player.getCurrentEra();
         if (!currentEra.isAdjacentTo(targetEra)) {
+            System.out.println("❌ Movement failed: " + currentEra.getDisplayName() + " not adjacent to " + targetEra.getDisplayName());
             return false;
         }
+
+        System.out.println("🔍 Move attempt: " + player.getName() + " from " + currentEra.getDisplayName() + " to " + targetEra.getDisplayName());
+        System.out.println("🔋 Battery: " + (player.canUseFreeBattery() ? "Available" : "Used"));
+        System.out.println("⚡ Energy at " + currentEra.getDisplayName() + ": " + gameState.getEnergy(currentEra));
 
         if (player.canUseFreeBattery()) {
             player.useFreeBattery();
             player.moveToEra(targetEra);
+            System.out.println("✅ Moved with battery");
             GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (battery)");
-        } else if (gameState.getEnergy(currentEra) > 0) {
-            gameState.removeEnergy(currentEra, 1);
-            player.moveToEra(targetEra);
-            GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (1 energy)");
-        } else {
-            return false;
+            missionManager.checkAllMissions(gameState, player, "Movement");
+            return true;
         }
 
-        missionManager.checkAllMissions(gameState, player, "Movement");
-        return true;
+        int availableEnergy = gameState.getEnergy(currentEra);
+        if (availableEnergy > 0) {
+            gameState.removeEnergy(currentEra, 1);
+            player.moveToEra(targetEra);
+            System.out.println("✅ Moved with energy");
+            GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (1 energy)");
+            missionManager.checkAllMissions(gameState, player, "Movement");
+            return true;
+        }
+
+        System.out.println("❌ Movement failed: No battery, no energy");
+        return false;
     }
 
     public boolean acquireCard(Player player) {

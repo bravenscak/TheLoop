@@ -2,13 +2,8 @@ package hr.algebra.theloop.ui;
 
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.model.Player;
-import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
-import javafx.scene.layout.Pane;
-
-import java.util.Map;
 
 public class MultiplayerUIHelper {
 
@@ -16,34 +11,6 @@ public class MultiplayerUIHelper {
 
     public MultiplayerUIHelper(GameEngine gameEngine) {
         this.gameEngine = gameEngine;
-    }
-
-    public boolean isLocalPlayerTurn() {
-        return true;
-    }
-
-    public boolean checkAndAlertIfNotPlayerTurn(String action) {
-        return true;
-    }
-
-    public void updateButtonStates(Button endTurnButton, Pane playerHandContainer, Map<?, Button> eraButtons) {
-        boolean enableControls = !gameEngine.isGameOver();
-
-        if (endTurnButton != null) {
-            endTurnButton.setDisable(!enableControls);
-        }
-
-        if (playerHandContainer != null) {
-            for (Node node : playerHandContainer.getChildren()) {
-                if (node instanceof Button) {
-                    node.setDisable(!enableControls);
-                }
-            }
-        }
-
-        if (eraButtons != null) {
-            eraButtons.values().forEach(button -> button.setDisable(!enableControls));
-        }
     }
 
     public String generateMultiplayerInfo() {
@@ -76,27 +43,6 @@ public class MultiplayerUIHelper {
         }
 
         return info.toString();
-    }
-
-    public String generateGameStatus() {
-        StringBuilder status = new StringBuilder();
-        status.append("🎯 Missions: ")
-                .append(gameEngine.getGameState().getTotalMissionsCompleted())
-                .append("/4\n");
-
-        status.append("⚡ Dr. Foo @ ")
-                .append(gameEngine.getGameState().getDrFooPosition().getDisplayName())
-                .append("\n");
-
-        status.append("🌀 Vortexes: ")
-                .append(gameEngine.getGameState().getVortexCount())
-                .append("/3\n");
-
-        status.append("🔄 Cycle: ")
-                .append(gameEngine.getGameState().getCurrentCycle())
-                .append("/3");
-
-        return status.toString();
     }
 
     public void updateMultiplayerInfoLabel(Object multiplayerInfoControl) {

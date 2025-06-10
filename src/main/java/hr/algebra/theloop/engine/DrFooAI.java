@@ -32,14 +32,14 @@ public class DrFooAI {
         int duplicatesToSpawn = calculateDuplicatesToSpawn(gameState);
 
         for (int i = 0; i < duplicatesToSpawn; i++) {
-            Era randomEra = getRandomEra();
+            Era spawnEra = getRandomEra();
 
-            boolean spawned = gameEngine.spawnDuplicate(randomEra);
+            boolean spawned = gameEngine.spawnDuplicate(spawnEra);
             if (!spawned) {
                 GameLogger.warning("Cannot spawn duplicate - bag empty");
                 break;
             } else {
-                GameLogger.drFoo("Spawned duplicate at " + randomEra.getDisplayName());
+                GameLogger.drFoo("Spawned duplicate at " + spawnEra.getDisplayName());
             }
         }
     }

@@ -32,8 +32,12 @@ public class TurnManager {
     public void processDrFooTurn(DrFooAI drFooAI, GameState gameState, CardAcquisitionManager cardManager) {
         drFooAI.executeDrFooPhase(gameState);
         cardManager.addRandomCardsToEras(gameState, 1);
+
+        endAllPlayerTurns();
+
         startPlayerTurn();
     }
+
 
     public boolean isWaitingForPlayerInput() {
         return waitingForPlayerInput;
@@ -41,5 +45,8 @@ public class TurnManager {
 
     public void setWaitingForPlayerInput(boolean waiting) {
         this.waitingForPlayerInput = waiting;
+    }
+
+    private void endAllPlayerTurns() {
     }
 }

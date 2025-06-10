@@ -48,7 +48,7 @@ public class CardAcquisitionManager {
 
         for (int i = 0; i < cardsPerTurn && !availableEras.isEmpty(); i++) {
             Era randomEra = availableEras.get(random.nextInt(availableEras.size()));
-            ArtifactCard newCard = CardFactory.createRandomCard(); // No era parameter!
+            ArtifactCard newCard = CardFactory.createRandomCard();
 
             availableCards.get(randomEra).add(newCard);
             System.out.println("📋 New card available at " + randomEra.getDisplayName() + ": " + newCard.getName());
@@ -63,13 +63,18 @@ public class CardAcquisitionManager {
         List<ArtifactCard> cardsAtEra = availableCards.get(era);
 
         if (cardsAtEra.isEmpty()) {
-            return null; // No cards available
+            return null;
         }
 
         ArtifactCard acquiredCard = cardsAtEra.remove(0);
         player.addCardToDeck(acquiredCard);
 
         return acquiredCard;
+    }
+
+    public ArtifactCard getAvailableCard(Era era) {
+        List<ArtifactCard> cardsAtEra = availableCards.get(era);
+        return cardsAtEra.isEmpty() ? null : cardsAtEra.get(0);
     }
 
     public List<ArtifactCard> getAvailableCardsAt(Era era) {
@@ -80,31 +85,12 @@ public class CardAcquisitionManager {
         return !availableCards.get(era).isEmpty();
     }
 
-    public int getTotalAvailableCards() {
-        return availableCards.values().stream()
-                .mapToInt(List::size)
-                .sum();
-    }
-
     public void removeCardsFromVortexEra(Era era) {
         List<ArtifactCard> cardsToRemove = availableCards.get(era);
         if (!cardsToRemove.isEmpty()) {
             System.out.println("🌀 Vortex destroyed " + cardsToRemove.size() + " cards at " + era.getDisplayName());
             cardsToRemove.clear();
         }
-    }
-
-    public Map<Era, List<String>> getCardAcquisitionInfo() {
-        Map<Era, List<String>> info = new HashMap<>();
-
-        for (Era era : Era.values()) {
-            List<String> cardNames = availableCards.get(era).stream()
-                    .map(card -> card.getName() + " (" + card.getDimension().getIcon() + ")")
-                    .toList();
-            info.put(era, cardNames);
-        }
-
-        return info;
     }
 
     public void addCardToEra(Era era, ArtifactCard card) {
@@ -117,28 +103,5 @@ public class CardAcquisitionManager {
         for (Era era : Era.values()) {
             availableCards.get(era).clear();
         }
-    }
-
-    public void addPremiumCardsEvent() {
-        System.out.println("🌟 PREMIUM CARDS EVENT!");
-
-        for (Era era : Era.values()) {
-            if (availableCards.get(era).size() < maxCardsPerEra) {
-                ArtifactCard premiumCard = createPremiumCard();
-                availableCards.get(era).add(premiumCard);
-                System.out.println("✨ Premium card at " + era.getDisplayName() + ": " + premiumCard.getName());
-            }
-        }
-    }
-
-    private ArtifactCard createPremiumCard() {
-        int cardType = random.nextInt(3);
-
-        return switch (cardType) {
-            case 0 -> hr.algebra.theloop.cards.EnergyCard.createEnergyBoost();
-            case 1 -> hr.algebra.theloop.cards.RiftCard.createQuantumEraser();
-            case 2 -> hr.algebra.theloop.cards.MovementCard.createQuantumLeap();
-            default -> CardFactory.createRandomCard();
-        };
     }
 }

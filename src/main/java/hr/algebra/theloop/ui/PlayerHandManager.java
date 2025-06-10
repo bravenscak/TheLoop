@@ -7,7 +7,6 @@ import hr.algebra.theloop.model.Player;
 
 import java.util.List;
 
-
 public class PlayerHandManager {
 
     private final CardController card1Controller;
@@ -22,8 +21,13 @@ public class PlayerHandManager {
         this.card3Controller = card3Controller;
     }
 
-    public void updateHand(Player currentPlayer) {
-        List<ArtifactCard> hand = currentPlayer.getHand();
+    public void updateHand(Player playerToDisplay) {
+        if (playerToDisplay == null) {
+            clearAllCards();
+            return;
+        }
+
+        List<ArtifactCard> hand = playerToDisplay.getHand();
 
         updateCardController(card1Controller, hand, 0);
         updateCardController(card2Controller, hand, 1);
@@ -61,6 +65,18 @@ public class PlayerHandManager {
         }
         if (card3Controller != null) {
             card3Controller.setSelected(false);
+        }
+    }
+
+    private void clearAllCards() {
+        if (card1Controller != null) {
+            card1Controller.setEmpty();
+        }
+        if (card2Controller != null) {
+            card2Controller.setEmpty();
+        }
+        if (card3Controller != null) {
+            card3Controller.setEmpty();
         }
     }
 
