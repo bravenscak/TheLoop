@@ -3,17 +3,17 @@ package hr.algebra.theloop.controller;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
+import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.model.PlayerMode;
 import hr.algebra.theloop.thread.ThreadingManager;
 import hr.algebra.theloop.ui.GameUIManager;
+import hr.algebra.theloop.ui.MultiplayerUIHelper;
 import hr.algebra.theloop.ui.PlayerHandManager;
 import hr.algebra.theloop.utils.DocumentationUtils;
 import hr.algebra.theloop.view.CircularBoardView;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -25,8 +25,10 @@ public class MainGameController implements Initializable {
     @FXML private Label turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel;
     @FXML private Label playerNameLabel, playerLocationLabel;
     @FXML private Label completedMissionsLabel, duplicatesLabel, availableCardsLabel;
+    @FXML private Label multiplayerInfoLabel;
     @FXML private Button endTurnButton, loopButton;
     @FXML private ListView<String> activeMissionsList;
+    @FXML private TextArea multiplayerInfoTextArea;
 
     private GameEngine gameEngine;
     private GameUIManager uiManager;
@@ -35,6 +37,7 @@ public class MainGameController implements Initializable {
     private ThreadingManager threadingManager;
     private GameActionsHandler actionsHandler;
     private boolean gameRunning;
+    private MultiplayerUIHelper multiplayerHelper;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -47,9 +50,27 @@ public class MainGameController implements Initializable {
 
     private void initializeGame() {
         gameEngine = new GameEngine();
-        gameEngine.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
+
+        String playerModeStr = System.getProperty("playerMode", "SINGLE_PLAYER");
+        PlayerMode playerMode = PlayerMode.valueOf(playerModeStr);
+
+        System.out.println("🎮 Initializing game in " + playerMode + " mode");
+
+        gameEngine.setPlayerMode(playerMode);
+        gameEngine.setupMultiplayerPlayers(playerMode);
+
+        multiplayerHelper = new MultiplayerUIHelper(gameEngine);
+
         gameEngine.startGame();
         gameRunning = true;
+
+        System.out.println("✅ Game initialized successfully");
+
+        if (playerMode != PlayerMode.SINGLE_PLAYER) {
+            Player localPlayer = gameEngine.getLocalPlayer();
+            System.out.println("🎯 You are controlling: " + localPlayer.getName() +
+                    " (at " + localPlayer.getCurrentEra().getDisplayName() + ")");
+        }
     }
 
     private void initializeManagers() {
@@ -78,7 +99,10 @@ public class MainGameController implements Initializable {
             var eraView = circularBoard.getEraView(era);
             if (eraView != null) {
                 eraView.setOnMouseClicked(event -> {
-                    if (inputHandler.handleEraClick(era)) {
+                    Player localPlayer = gameEngine.getLocalPlayer();
+                    boolean success = gameEngine.movePlayer(localPlayer, era);
+
+                    if (success) {
                         updateUI();
                         checkGameEnd();
                     }
@@ -88,38 +112,45 @@ public class MainGameController implements Initializable {
         }
     }
 
-    @FXML private void endTurn() {
+    @FXML
+    private void endTurn() {
         if (!gameRunning || gameEngine.isGameOver()) return;
 
-        boolean success = gameEngine.isWaitingForPlayerInput() ?
-                inputHandler.endPlayerTurn() : inputHandler.processNextTurn();
+        gameEngine.endPlayerTurn();
+        updateUI();
+        checkGameEnd();
+    }
+
+    @FXML
+    private void performLoop() {
+        if (!gameRunning || gameEngine.isGameOver()) return;
+
+        gameEngine.processTurn();
+        updateUI();
+    }
+
+    @FXML
+    private void acquireCard() {
+        if (!gameRunning || gameEngine.isGameOver()) return;
+
+        Player localPlayer = gameEngine.getLocalPlayer();
+        boolean success = gameEngine.acquireCard(localPlayer);
 
         if (success) {
             updateUI();
-            checkGameEnd();
         }
     }
 
-    @FXML private void performLoop() {
-        if (gameRunning && !gameEngine.isGameOver() && inputHandler.performLoop()) {
-            updateUI();
-        }
-    }
-
-    @FXML private void acquireCard() {
-        if (gameRunning && !gameEngine.isGameOver() && gameEngine.acquireCard(gameEngine.getCurrentPlayer())) {
-            updateUI();
-        }
-    }
-
-    @FXML private void saveGame() {
+    @FXML
+    private void saveGame() {
         if (gameRunning) {
             gameEngine.saveGame();
             actionsHandler.handleSaveGame();
         }
     }
 
-    @FXML private void loadGame() {
+    @FXML
+    private void loadGame() {
         if (!gameRunning) return;
 
         GameEngine newEngine = actionsHandler.handleLoadGame(endTurnButton);
@@ -135,7 +166,8 @@ public class MainGameController implements Initializable {
         }
     }
 
-    @FXML private void newGame() {
+    @FXML
+    private void newGame() {
         gameEngine = actionsHandler.handleNewGame();
         inputHandler = new PlayerInputHandler(gameEngine);
         actionsHandler.updateGameEngine(gameEngine);
@@ -152,16 +184,24 @@ public class MainGameController implements Initializable {
     private void updateUI() {
         if (gameEngine == null) return;
 
+        if (multiplayerHelper != null) {
+            multiplayerHelper.updateMultiplayerInfoLabel(multiplayerInfoTextArea);
+        }
+
         uiManager.updateAll(
                 gameEngine.getGameState(),
-                gameEngine.getCurrentPlayer(),
+                multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : gameEngine.getCurrentPlayer(),
                 gameEngine.isGameOver(),
                 gameEngine.isWaitingForPlayerInput(),
                 gameEngine.getDuplicatesInBag(),
                 gameEngine.getTotalDuplicatesOnBoard()
         );
 
-        handManager.updateHand(gameEngine.getCurrentPlayer());
+        Player displayPlayer = multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : gameEngine.getCurrentPlayer();
+        handManager.updateHand(displayPlayer);
+
+        updatePlayerDisplay(displayPlayer);
+        updatePlayerPositions(); // DODAJ
     }
 
     private void checkGameEnd() {
@@ -182,6 +222,9 @@ public class MainGameController implements Initializable {
     public void shutdown() {
         if (threadingManager != null) {
             threadingManager.stop();
+        }
+        if (gameEngine != null) {
+            gameEngine.shutdown();
         }
     }
 
@@ -204,6 +247,82 @@ public class MainGameController implements Initializable {
             alert.showAndWait();
 
             e.printStackTrace();
+        }
+    }
+
+    private void updatePlayerDisplay(Player playerToDisplay) {
+        if (gameEngine == null || playerToDisplay == null) return;
+
+        Player currentPlayer = gameEngine.getCurrentPlayer();
+        boolean isLocalPlayerTurn = multiplayerHelper != null ? multiplayerHelper.isLocalPlayerTurn() : true;
+
+        playerLocationLabel.setText(playerToDisplay.getCurrentEra().getDisplayName());
+
+        if (multiplayerHelper != null && gameEngine.isMultiplayer()) {
+            updateMultiplayerInfo();
+        }
+    }
+
+    private void updateMultiplayerInfo() {
+        if (multiplayerHelper != null) {
+            String info = multiplayerHelper.generateMultiplayerInfo();
+            if (multiplayerInfoLabel != null) {
+                multiplayerInfoLabel.setText(info);
+            }
+        }
+    }
+
+    private void updatePlayerPositions() {
+        if (gameEngine == null) return;
+
+        clearPlayerIndicators();
+
+        for (int i = 0; i < gameEngine.getPlayerManager().getPlayers().size(); i++) {
+            Player player = gameEngine.getPlayerManager().getPlayers().get(i);
+            boolean isLocal = (i == gameEngine.getLocalPlayerIndex());
+
+            addPlayerIndicatorToEra(player.getCurrentEra(), player.getName(), isLocal);
+        }
+    }
+
+    private void clearPlayerIndicators() {
+        for (Era era : Era.values()) {
+            var eraView = circularBoard.getEraView(era);
+            if (eraView != null) {
+                eraView.getStyleClass().removeAll("era-has-bruno", "era-has-alice", "era-has-local-player");
+            }
+        }
+    }
+
+    private void addPlayerIndicatorToEra(Era era, String playerName, boolean isLocal) {
+        var eraView = circularBoard.getEraView(era);
+        if (eraView != null) {
+            if (playerName.contains("Bruno")) {
+                eraView.getStyleClass().add("era-has-bruno");
+            } else if (playerName.contains("Alice")) {
+                eraView.getStyleClass().add("era-has-alice");
+            }
+
+            if (isLocal) {
+                eraView.getStyleClass().add("era-has-local-player");
+            }
+        }
+    }
+
+    @FXML
+    private void onCardPlay() {
+        if (!gameRunning || gameEngine.isGameOver()) return;
+
+        Player localPlayer = gameEngine.getLocalPlayer();
+
+        if (!localPlayer.getHand().isEmpty()) {
+            Era targetEra = localPlayer.getCurrentEra();
+            boolean success = gameEngine.playCard(localPlayer, 0, targetEra);
+
+            if (success) {
+                updateUI();
+                checkGameEnd();
+            }
         }
     }
 }

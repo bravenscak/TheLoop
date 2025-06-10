@@ -1,6 +1,7 @@
 package hr.algebra.theloop.engine;
 
 import hr.algebra.theloop.model.*;
+import hr.algebra.theloop.networking.NetworkManager;
 import hr.algebra.theloop.utils.GameLogger;
 import lombok.Data;
 
@@ -19,6 +20,9 @@ public class GameEngine {
     private final MissionManager missionManager;
     private final CardAcquisitionManager cardAcquisitionManager;
     private final PlayerActionManager playerActionManager;
+    private final NetworkManager networkManager;
+
+    private int localPlayerIndex = 0;
 
     public GameEngine() {
         this.gameState = new GameState();
@@ -31,10 +35,29 @@ public class GameEngine {
         this.missionManager = new MissionManager(random);
         this.cardAcquisitionManager = new CardAcquisitionManager(random);
         this.playerActionManager = new PlayerActionManager(gameState, missionManager, cardAcquisitionManager);
+        this.networkManager = new NetworkManager(this::handleNetworkUpdate);
     }
 
-    public void addPlayer(String name, Era startingEra) {
-        playerManager.addPlayer(name, startingEra);
+    public void setPlayerMode(PlayerMode playerMode) {
+        networkManager.setPlayerMode(playerMode);
+    }
+
+    public void setupMultiplayerPlayers(PlayerMode playerMode) {
+        if (playerMode == PlayerMode.SINGLE_PLAYER) {
+            playerManager.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
+            localPlayerIndex = 0;
+        } else {
+            playerManager.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
+            playerManager.addPlayer("Time Agent Alice", Era.MEDIEVAL);
+
+            if (playerMode == PlayerMode.PLAYER_ONE) {
+                localPlayerIndex = 0;
+                GameLogger.gameFlow("🎮 You control: Time Agent Bruno");
+            } else {
+                localPlayerIndex = 1;
+                GameLogger.gameFlow("🎮 You control: Time Agent Alice");
+            }
+        }
     }
 
     public void startGame() {
@@ -45,19 +68,34 @@ public class GameEngine {
         cardAcquisitionManager.initializeAvailableCards(gameState);
         missionManager.initializeMissions(gameState);
         playerManager.setupInitialPlayer();
-        turnManager.startPlayerTurn();
+
+        if (networkManager.isMultiplayer()) {
+            turnManager.setWaitingForPlayerInput(true);
+            GameLogger.gameFlow("🎮 Multiplayer mode - both players can act anytime");
+        } else {
+            turnManager.startPlayerTurn();
+        }
 
         GameLogger.gameFlow("Game started with " + playerManager.getPlayers().size() + " players");
     }
 
     public void processTurn() {
         if (gameState.isGameOver()) return;
+
         turnManager.processDrFooTurn(drFooAI, gameState, cardAcquisitionManager);
+        broadcastGameState("Dr. Foo Turn", "Dr. Foo");
     }
 
     public void endPlayerTurn() {
         if (!isWaitingForPlayerInput()) return;
-        turnManager.endPlayerTurn(playerManager.getPlayers(), gameState);
+
+        if (networkManager.isMultiplayer()) {
+            processTurn();
+        } else {
+            String currentPlayerName = getCurrentPlayer().getName();
+            turnManager.endPlayerTurn(playerManager.getPlayers(), gameState);
+            broadcastGameState("End Turn", currentPlayerName);
+        }
     }
 
     public void saveGame() {
@@ -84,17 +122,51 @@ public class GameEngine {
     }
 
     public boolean playCard(Player player, int cardIndex, Era targetEra) {
+        if (!isLocalPlayer(player)) {
+            GameLogger.warning("Cannot control other player's actions!");
+            return false;
+        }
+
         boolean success = playerActionManager.playCard(player, cardIndex, targetEra);
-        if (success) checkGameEndConditions();
+
+        if (success) {
+            checkGameEndConditions();
+            String action = "Played card " + cardIndex + " at " + targetEra.getDisplayName();
+            broadcastGameState(action, player.getName());
+        }
+
         return success;
     }
 
     public boolean movePlayer(Player player, Era targetEra) {
-        return playerActionManager.movePlayer(player, targetEra);
+        if (!isLocalPlayer(player)) {
+            GameLogger.warning("Cannot control other player's movement!");
+            return false;
+        }
+
+        boolean success = playerActionManager.movePlayer(player, targetEra);
+
+        if (success) {
+            String action = "Moved to " + targetEra.getDisplayName();
+            broadcastGameState(action, player.getName());
+        }
+
+        return success;
     }
 
     public boolean acquireCard(Player player) {
-        return playerActionManager.acquireCard(player);
+        if (!isLocalPlayer(player)) {
+            GameLogger.warning("Cannot control other player's card acquisition!");
+            return false;
+        }
+
+        boolean success = playerActionManager.acquireCard(player);
+
+        if (success) {
+            broadcastGameState("Acquired card", player.getName());
+        }
+
+        return success;
     }
 
     public void restoreFromGameState(GameState loadedState) {
@@ -113,10 +185,13 @@ public class GameEngine {
             addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
         }
 
-        turnManager.setWaitingForPlayerInput(!loadedState.isGameOver());
+        if (networkManager.isMultiplayer()) {
+            turnManager.setWaitingForPlayerInput(true);
+        } else {
+            turnManager.setWaitingForPlayerInput(!loadedState.isGameOver());
+        }
 
         recalculateDuplicatesInBag(loadedState);
-
         restoreAvailableCards();
     }
 
@@ -138,11 +213,66 @@ public class GameEngine {
         }
     }
 
+    private void broadcastGameState(String lastAction, String playerName) {
+        if (networkManager.isEnabled()) {
+            gameState.saveAllPlayerStates(playerManager.getPlayers(), playerManager.getCurrentPlayerIndex());
+            networkManager.sendGameState(gameState, lastAction, playerName);
+        }
+    }
+
+    private void handleNetworkUpdate(NetworkGameState networkState) {
+        try {
+            networkState.applyToGameState(this.gameState);
+
+            if (networkState.getPlayerStates() != null && !networkState.getPlayerStates().isEmpty()) {
+                playerManager.restorePlayersFromStates(
+                        networkState.getPlayerStates(),
+                        networkState.getCurrentPlayerIndex()
+                );
+            }
+
+            recalculateDuplicatesInBag(this.gameState);
+
+            GameLogger.gameFlow("🔄 Synced: " + networkState.getLastAction() + " by " + networkState.getLastPlayerName());
+
+        } catch (Exception e) {
+            GameLogger.error("Failed to apply network update: " + e.getMessage());
+        }
+    }
+
+    private boolean isLocalPlayer(Player player) {
+        if (networkManager.getPlayerMode() == PlayerMode.SINGLE_PLAYER) {
+            return true;
+        }
+
+        int playerIndex = playerManager.getPlayers().indexOf(player);
+        return playerIndex == localPlayerIndex;
+    }
+
+    public void addPlayer(String name, Era startingEra) {
+        playerManager.addPlayer(name, startingEra);
+    }
+
+    public void shutdown() {
+        networkManager.stop();
+    }
+
     public Player getCurrentPlayer() { return playerManager.getCurrentPlayer(); }
+    public Player getLocalPlayer() {
+        if (playerManager.getPlayers().size() > localPlayerIndex) {
+            return playerManager.getPlayers().get(localPlayerIndex);
+        }
+        return getCurrentPlayer();
+    }
     public boolean isGameOver() { return gameState.isGameOver(); }
-    public boolean isWaitingForPlayerInput() { return turnManager.isWaitingForPlayerInput(); }
+    public boolean isWaitingForPlayerInput() {
+        return networkManager.isMultiplayer() ? !gameState.isGameOver() : turnManager.isWaitingForPlayerInput();
+    }
     public int getDuplicatesInBag() { return duplicatesInBag; }
     public MissionManager getMissionManager() { return missionManager; }
+    public boolean isMultiplayer() { return networkManager.isMultiplayer(); }
+    public PlayerMode getPlayerMode() { return networkManager.getPlayerMode(); }
+    public int getLocalPlayerIndex() { return localPlayerIndex; }
 
     public int getTotalDuplicatesOnBoard() {
         return (int) java.util.Arrays.stream(Era.values())

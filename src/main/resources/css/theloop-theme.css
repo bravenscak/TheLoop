@@ -237,3 +237,51 @@
 .era-view:hover {
     -fx-cursor: hand;
 }
+
+.era-has-bruno {
+    -fx-border-color: #3498db !important;
+    -fx-border-width: 3px !important;
+}
+
+.era-has-alice {
+    -fx-border-color: #e74c3c !important;
+    -fx-border-width: 3px !important;
+}
+
+.era-has-local-player {
+    -fx-effect: dropshadow(gaussian, #f1c40f, 10, 0.8, 0, 0);
+}
+
+.era-has-bruno.era-has-alice {
+    -fx-border-color: linear-gradient(to right, #3498db 50%, #e74c3c 50%) !important;
+    -fx-border-width: 4px !important;
+}
+
+.era-button {
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 5px;
+}
+
+.multiplayer-info {
+    -fx-background-color: rgba(0, 0, 0, 0.7);
+    -fx-text-fill: white;
+    -fx-padding: 8px;
+    -fx-background-radius: 5px;
+    -fx-font-size: 12px;
+}
+
+.player-legend {
+    -fx-spacing: 10px;
+    -fx-padding: 5px;
+}
+
+.legend-bruno {
+    -fx-text-fill: #3498db;
+    -fx-font-weight: bold;
+}
+
+.legend-alice {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}

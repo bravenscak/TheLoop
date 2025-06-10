@@ -63,6 +63,15 @@
                 <Button text="Generate Docs" onAction="#generateDocumentation" prefWidth="300" />
             </VBox>
 
+            <VBox spacing="5" fx:id="multiplayerInfoBox" visible="false">
+                <Label text="🎮 Players:" style="-fx-font-weight: bold; -fx-text-fill: #ffffff;"/>
+                <TextArea fx:id="multiplayerInfoTextArea"
+                          text=""
+                          editable="false"
+                          wrapText="true"
+                          prefRowCount="6"
+                          style="-fx-font-size: 11px; -fx-text-fill: #ffffff; -fx-background-color: rgba(0,0,0,0.5); -fx-control-inner-background: rgba(0,0,0,0.3);"/>
+            </VBox>
         </VBox>
     </right>
 
