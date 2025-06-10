@@ -54,13 +54,22 @@ public class PullDuplicateCard extends ArtifactCard {
         }
 
         gameState.removeDuplicate(sourceEra, selectedDuplicate);
-        selectedDuplicate.moveTo(playerEra);
 
-        if (selectedDuplicate.isAtDestructionEra()) {
-            GameLogger.playerAction(player.getName(), "Duplicate destroyed by temporal paradox at " + playerEra.getDisplayName());
+        Duplicate movedDuplicate = new Duplicate(
+                selectedDuplicate.getSpawnEra(),
+                playerEra,
+                selectedDuplicate.getTurnsActive()
+        );
+
+        if (movedDuplicate.isAtDestructionEra()) {
+            GameLogger.playerAction(player.getName(),
+                    "Duplicate destroyed by temporal paradox at " + playerEra.getDisplayName() +
+                            " (destroy era: " + movedDuplicate.getDestroyEra().getDisplayName() + ")");
         } else {
-            gameState.addDuplicate(playerEra, selectedDuplicate);
-            GameLogger.playerAction(player.getName(), "Pulled duplicate from " + sourceEra.getDisplayName());
+            gameState.addDuplicate(playerEra, movedDuplicate);
+            GameLogger.playerAction(player.getName(),
+                    "Pulled duplicate from " + sourceEra.getDisplayName() +
+                            " (destroy @ " + movedDuplicate.getDestroyEra().getDisplayName() + ")");
         }
 
         return true;

@@ -4,9 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.ArrayList;
 
 @Data
 @AllArgsConstructor
@@ -25,6 +24,8 @@ public class NetworkGameState implements Serializable {
     private boolean[] vortexPerEra;
     private int[] duplicateCountPerEra;
 
+    private List<List<DuplicateInfo>> duplicateDetails;
+
     private List<PlayerData> playerStates;
     private int currentPlayerIndex;
     private PlayerMode activePlayerMode;
@@ -32,7 +33,27 @@ public class NetworkGameState implements Serializable {
     private String lastAction;
     private String lastPlayerName;
 
-    private Map<Era, Integer> duplicateCounts;
+    @Data
+    @AllArgsConstructor
+    public static class DuplicateInfo implements Serializable {
+        private Era spawnEra;
+        private Era destroyEra;
+        private Era currentEra;
+        private int turnsActive;
+
+        public static DuplicateInfo fromDuplicate(Duplicate dup) {
+            return new DuplicateInfo(
+                    dup.getSpawnEra(),
+                    dup.getDestroyEra(),
+                    dup.getCurrentEra(),
+                    dup.getTurnsActive()
+            );
+        }
+
+        public Duplicate toDuplicate() {
+            return new Duplicate(spawnEra, currentEra, turnsActive);
+        }
+    }
 
     public static NetworkGameState fromGameState(GameState gameState, PlayerMode playerMode,
                                                  String lastAction, String lastPlayerName) {
@@ -43,6 +64,7 @@ public class NetworkGameState implements Serializable {
         int[] energy = new int[eraCount];
         boolean[] vortex = new boolean[eraCount];
         int[] duplicates = new int[eraCount];
+        List<List<DuplicateInfo>> duplicateDetails = new ArrayList<>();
 
         for (int i = 0; i < eraCount; i++) {
             Era era = eras[i];
@@ -50,11 +72,12 @@ public class NetworkGameState implements Serializable {
             energy[i] = gameState.getEnergy(era);
             vortex[i] = gameState.hasVortex(era);
             duplicates[i] = gameState.getDuplicateCount(era);
-        }
 
-        Map<Era, Integer> dupCounts = new HashMap<>();
-        for (Era era : Era.values()) {
-            dupCounts.put(era, gameState.getDuplicateCount(era));
+            List<DuplicateInfo> eraDetails = new ArrayList<>();
+            for (Duplicate dup : gameState.getDuplicatesAt(era)) {
+                eraDetails.add(DuplicateInfo.fromDuplicate(dup));
+            }
+            duplicateDetails.add(eraDetails);
         }
 
         return new NetworkGameState(
@@ -67,12 +90,12 @@ public class NetworkGameState implements Serializable {
                 energy,
                 vortex,
                 duplicates,
+                duplicateDetails,
                 gameState.getPlayerStates(),
                 gameState.getCurrentPlayerIndex(),
                 playerMode,
                 lastAction,
-                lastPlayerName,
-                dupCounts
+                lastPlayerName
         );
     }
 
@@ -97,14 +120,12 @@ public class NetworkGameState implements Serializable {
                 gameState.getResources().getVortexes().remove(era);
             }
 
-            int networkDuplicateCount = duplicateCountPerEra[i];
-            int currentDuplicateCount = gameState.getDuplicateCount(era);
+            gameState.getResources().getDuplicates().get(era).clear();
 
-            if (networkDuplicateCount != currentDuplicateCount) {
-                gameState.clearDuplicatesAt(era);
-
-                for (int j = 0; j < networkDuplicateCount; j++) {
-                    gameState.addDuplicate(era, new Duplicate(era));
+            if (duplicateDetails != null && i < duplicateDetails.size()) {
+                for (DuplicateInfo dupInfo : duplicateDetails.get(i)) {
+                    Duplicate newDup = dupInfo.toDuplicate();
+                    gameState.getResources().getDuplicates().get(era).add(newDup);
                 }
             }
         }
@@ -113,7 +134,4 @@ public class NetworkGameState implements Serializable {
             gameState.setPlayerStates(playerStates);
         }
     }
-
-    public Map<Era, Integer> getDuplicateCounts() { return duplicateCounts; }
-    public void setDuplicateCounts(Map<Era, Integer> counts) { this.duplicateCounts = counts; }
 }

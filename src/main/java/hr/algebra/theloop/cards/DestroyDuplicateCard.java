@@ -21,25 +21,35 @@ public class DestroyDuplicateCard extends ArtifactCard {
 
         if (!duplicatesHere.isEmpty()) {
             Duplicate duplicateToDestroy = duplicatesHere.get(0);
-            executeWithDuplicate(gameState, player, playerEra, duplicateToDestroy);
+            gameState.removeDuplicate(playerEra, duplicateToDestroy);
+            GameLogger.playerAction(player.getName(), "Destroyed duplicate at " + playerEra.getDisplayName());
         }
 
         exhaust();
     }
 
-    public boolean executeWithDuplicate(GameState gameState, Player player, Era sourceEra, Duplicate selectedDuplicate) {
-        List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(sourceEra);
+    public boolean executeWithDuplicate(GameState gameState, Player player, Era targetEra, Duplicate selectedDuplicate) {
+        Era playerEra = player.getCurrentEra();
+
+        if (!playerEra.equals(targetEra)) {
+            GameLogger.warning("Cannot destroy duplicate - must be on same era as duplicate!");
+            return false;
+        }
+
+        List<Duplicate> duplicatesHere = gameState.getDuplicatesAt(targetEra);
 
         if (!duplicatesHere.contains(selectedDuplicate)) {
             return false;
         }
 
-        gameState.removeDuplicate(sourceEra, selectedDuplicate);
+        boolean removed = gameState.removeDuplicate(targetEra, selectedDuplicate);
 
-        // TODO: Need to fix duplicate bag management
-        GameLogger.playerAction(player.getName(), "Destroyed duplicate at " + sourceEra.getDisplayName());
+        if (removed) {
+            GameLogger.playerAction(player.getName(), "Destroyed duplicate at " + targetEra.getDisplayName());
+            return true;
+        }
 
-        return true;
+        return false;
     }
 
     @Override

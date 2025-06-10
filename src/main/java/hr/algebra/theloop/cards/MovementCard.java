@@ -38,7 +38,6 @@ public class MovementCard extends ArtifactCard {
 
     @Override
     public void execute(GameState gameState, Player player) {
-        System.out.println("🎯 Movement card selected - click target era to move!");
         exhaust();
     }
 

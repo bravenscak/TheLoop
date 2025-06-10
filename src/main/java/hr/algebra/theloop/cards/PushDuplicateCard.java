@@ -40,13 +40,22 @@ public class PushDuplicateCard extends ArtifactCard {
         Era targetEra = gameState.getRifts(nextEra) <= gameState.getRifts(prevEra) ? nextEra : prevEra;
 
         gameState.removeDuplicate(sourceEra, selectedDuplicate);
-        selectedDuplicate.moveTo(targetEra);
 
-        if (selectedDuplicate.isAtDestructionEra()) {
-            GameLogger.playerAction(player.getName(), "Duplicate destroyed by temporal paradox at " + targetEra.getDisplayName());
+        Duplicate movedDuplicate = new Duplicate(
+                selectedDuplicate.getSpawnEra(),
+                targetEra,
+                selectedDuplicate.getTurnsActive()
+        );
+
+        if (movedDuplicate.isAtDestructionEra()) {
+            GameLogger.playerAction(player.getName(),
+                    "Duplicate destroyed by temporal paradox at " + targetEra.getDisplayName() +
+                            " (destroy era: " + movedDuplicate.getDestroyEra().getDisplayName() + ")");
         } else {
-            gameState.addDuplicate(targetEra, selectedDuplicate);
-            GameLogger.playerAction(player.getName(), "Pushed duplicate to " + targetEra.getDisplayName());
+            gameState.addDuplicate(targetEra, movedDuplicate);
+            GameLogger.playerAction(player.getName(),
+                    "Pushed duplicate to " + targetEra.getDisplayName() +
+                            " (destroy @ " + movedDuplicate.getDestroyEra().getDisplayName() + ")");
         }
 
         return true;

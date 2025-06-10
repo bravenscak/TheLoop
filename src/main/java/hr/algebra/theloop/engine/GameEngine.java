@@ -51,7 +51,6 @@ public class GameEngine {
         } else {
             playerManager.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
             playerManager.addPlayer("Time Agent Alice", Era.MEDIEVAL);
-
             localPlayerIndex = (playerMode == PlayerMode.PLAYER_ONE) ? 0 : 1;
         }
     }
@@ -125,6 +124,9 @@ public class GameEngine {
         boolean success = playerActionManager.playCard(player, cardIndex, targetEra);
 
         if (success) {
+            if (uiUpdateCallback != null) {
+                Platform.runLater(uiUpdateCallback);
+            }
             checkGameEndConditions();
             broadcastGameState("Played card", player.getName());
         }
@@ -140,6 +142,9 @@ public class GameEngine {
         boolean success = playerActionManager.movePlayer(player, targetEra);
 
         if (success) {
+            if (uiUpdateCallback != null) {
+                Platform.runLater(uiUpdateCallback);
+            }
             broadcastGameState("Moved to " + targetEra.getDisplayName(), player.getName());
         }
 
@@ -206,7 +211,6 @@ public class GameEngine {
                 gameState.savePlayerState(player);
             }
             gameState.saveAllPlayerStates(playerManager.getPlayers(), playerManager.getCurrentPlayerIndex());
-
             networkManager.sendGameState(gameState, action, playerName);
         }
     }
@@ -223,11 +227,6 @@ public class GameEngine {
             }
 
             recalculateDuplicatesInBag(this.gameState);
-
-            int totalOnBoard = getTotalDuplicatesOnBoard();
-            System.out.println("🔄 Synced duplicates - Total on board: " + totalOnBoard);
-
-            GameLogger.gameFlow("🔄 Synced: " + networkState.getLastAction() + " by " + networkState.getLastPlayerName());
 
             if (uiUpdateCallback != null) {
                 Platform.runLater(uiUpdateCallback);

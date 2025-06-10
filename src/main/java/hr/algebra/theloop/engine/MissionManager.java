@@ -29,6 +29,12 @@ public class MissionManager {
         }
     }
 
+    public void updateMissionProgress(GameState gameState) {
+    }
+
+    public void checkCompletedMissions(GameState gameState) {
+    }
+
     public void checkAllMissions(GameState gameState, Player player, String actionType) {
         List<Mission> missionsToComplete = new ArrayList<>();
 

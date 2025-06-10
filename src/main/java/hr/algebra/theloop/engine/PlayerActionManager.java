@@ -36,10 +36,18 @@ public class PlayerActionManager {
             return false;
         }
 
+        int totalDuplicatesBefore = getTotalDuplicates();
+
         card.execute(gameState, player);
         card.exhaust();
 
-        GameLogger.playerAction(player.getName(), "Played " + card.getName());
+        // ✅ DODAJ: Provjeri promjenu duplikata
+        int totalDuplicatesAfter = getTotalDuplicates();
+        boolean duplicatesChanged = (totalDuplicatesBefore != totalDuplicatesAfter);
+
+        GameLogger.playerAction(player.getName(), "Played " + card.getName() +
+                (duplicatesChanged ? " (duplicates: " + totalDuplicatesBefore + " → " + totalDuplicatesAfter + ")" : ""));
+
         missionManager.checkAllMissions(gameState, player, card.getClass().getSimpleName());
 
         return true;
@@ -52,18 +60,12 @@ public class PlayerActionManager {
 
         Era currentEra = player.getCurrentEra();
         if (!currentEra.isAdjacentTo(targetEra)) {
-            System.out.println("❌ Movement failed: " + currentEra.getDisplayName() + " not adjacent to " + targetEra.getDisplayName());
             return false;
         }
-
-        System.out.println("🔍 Move attempt: " + player.getName() + " from " + currentEra.getDisplayName() + " to " + targetEra.getDisplayName());
-        System.out.println("🔋 Battery: " + (player.canUseFreeBattery() ? "Available" : "Used"));
-        System.out.println("⚡ Energy at " + currentEra.getDisplayName() + ": " + gameState.getEnergy(currentEra));
 
         if (player.canUseFreeBattery()) {
             player.useFreeBattery();
             player.moveToEra(targetEra);
-            System.out.println("✅ Moved with battery");
             GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (battery)");
             missionManager.checkAllMissions(gameState, player, "Movement");
             return true;
@@ -73,13 +75,11 @@ public class PlayerActionManager {
         if (availableEnergy > 0) {
             gameState.removeEnergy(currentEra, 1);
             player.moveToEra(targetEra);
-            System.out.println("✅ Moved with energy");
             GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (1 energy)");
             missionManager.checkAllMissions(gameState, player, "Movement");
             return true;
         }
 
-        System.out.println("❌ Movement failed: No battery, no energy");
         return false;
     }
 
@@ -92,5 +92,13 @@ public class PlayerActionManager {
             return true;
         }
         return false;
+    }
+
+    private int getTotalDuplicates() {
+        int total = 0;
+        for (Era era : Era.values()) {
+            total += gameState.getDuplicateCount(era);
+        }
+        return total;
     }
 }

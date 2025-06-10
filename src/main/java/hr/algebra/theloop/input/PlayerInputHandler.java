@@ -1,7 +1,6 @@
 package hr.algebra.theloop.input;
 
-import hr.algebra.theloop.cards.MovementCard;
-import hr.algebra.theloop.cards.ArtifactCard;
+import hr.algebra.theloop.cards.*;
 import hr.algebra.theloop.controller.CardController;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.model.Era;
@@ -48,13 +47,23 @@ public class PlayerInputHandler {
         Player playerToControl = getPlayerToControl();
 
         if (hasSelectedCard()) {
+            boolean success = false;
+
             if (selectedCard.getCard() instanceof MovementCard) {
-                return cardActionHandler.handleMovementCard(playerToControl, selectedCardIndex, era, selectedCard);
+                success = cardActionHandler.handleMovementCard(playerToControl, selectedCardIndex, era, selectedCard);
+            } else if (selectedCard.getCard() instanceof EnergyCard) {
+                success = gameEngine.playCard(playerToControl, selectedCardIndex, playerToControl.getCurrentEra());
             } else if (cardActionHandler.isDuplicateCard(selectedCard.getCard())) {
-                return cardActionHandler.handleDuplicateCard(playerToControl, selectedCardIndex, era, selectedCard);
+                success = cardActionHandler.handleDuplicateCard(playerToControl, selectedCardIndex, era, selectedCard);
             } else {
-                return cardActionHandler.handleRegularCard(playerToControl, selectedCardIndex, era);
+                success = cardActionHandler.handleRegularCard(playerToControl, selectedCardIndex, era);
             }
+
+            if (success) {
+                clearSelection();
+            }
+
+            return success;
         } else {
             return attemptRegularMovement(playerToControl, era);
         }
@@ -90,11 +99,9 @@ public class PlayerInputHandler {
 
         gameEngine.getGameState().removeEnergy(playerEra, loopCost);
 
-        int readiedCards = 0;
         for (ArtifactCard card : playerToControl.getHand()) {
             if (card.isExhausted()) {
                 card.ready();
-                readiedCards++;
             }
         }
 

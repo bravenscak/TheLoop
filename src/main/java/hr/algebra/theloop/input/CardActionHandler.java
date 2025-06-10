@@ -27,23 +27,18 @@ public class CardActionHandler {
         if (!movementCard.isValidTarget(currentEra, targetEra)) {
             return false;
         }
+
         boolean success = gameEngine.playCard(player, cardIndex, targetEra);
 
         if (success) {
             cardController.playCard();
 
-            if (player.getCurrentEra().equals(currentEra)) {
-                if (movementCard.getClass().getSimpleName().contains("Energetic")) {
-                    gameEngine.getGameState().addEnergy(targetEra, 1);
-                }
-
-                player.moveToEra(targetEra);
-
-                gameEngine.broadcastGameState("Used " + movementCard.getName(), player.getName());
-            }
+            movementCard.executeMovement(gameEngine.getGameState(), player, targetEra);
 
             gameEngine.getMissionManager().checkAllMissions(
                     gameEngine.getGameState(), player, movementCard.getClass().getSimpleName());
+
+            gameEngine.broadcastGameState("Used " + movementCard.getName(), player.getName());
         }
 
         return success;
@@ -113,6 +108,8 @@ public class CardActionHandler {
             cardController.playCard();
             gameEngine.getMissionManager().checkAllMissions(
                     gameEngine.getGameState(), player, card.getClass().getSimpleName());
+
+            gameEngine.broadcastGameState("Used " + cardController.getCard().getName(), player.getName());
         }
 
         return success;

@@ -7,7 +7,6 @@ import lombok.EqualsAndHashCode;
 import java.io.Serializable;
 import java.util.UUID;
 
-
 @Data
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -29,10 +28,18 @@ public class Duplicate implements Serializable {
         this.turnsActive = 0;
     }
 
+    public Duplicate(Era originalSpawnEra, Era newCurrentEra, int turnsActive) {
+        this.id = "DUP_" + UUID.randomUUID().toString().substring(0, 8);
+        this.spawnEra = originalSpawnEra;
+        this.destroyEra = calculateDestroyEra(originalSpawnEra);
+        this.currentEra = newCurrentEra;
+        this.turnsActive = turnsActive;
+    }
+
     public Duplicate(Duplicate other) {
         this.id = other.id;
         this.spawnEra = other.spawnEra;
-        this.destroyEra = other.destroyEra;
+        this.destroyEra = other.destroyEra; // ✅ Čuva originalni destroy era
         this.currentEra = other.currentEra;
         this.turnsActive = other.turnsActive;
     }
@@ -78,7 +85,7 @@ public class Duplicate implements Serializable {
     }
 
     public String getIcon() {
-        return "👤"; // Generic duplicate icon
+        return "👤";
     }
 
     public String getMonocleDisplay() {
