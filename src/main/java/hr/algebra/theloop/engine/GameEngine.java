@@ -61,11 +61,28 @@ public class GameEngine {
         }
 
         cardAcquisitionManager.initializeAvailableCards(gameState);
-        missionManager.initializeMissions(gameState);
+
+        if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
+            missionManager.initializeMissions(gameState);
+            GameLogger.gameFlow("🎮 Player 1: Initialized missions");
+        }
+
         playerManager.setupInitialPlayer();
 
         if (networkManager.isMultiplayer()) {
             turnManager.setWaitingForPlayerInput(true);
+
+            if (localPlayerIndex == 0) {
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(2000);
+                        broadcastCompleteGameState("Missions Initialized", "System");
+                        GameLogger.gameFlow("🎮 Player 1: Broadcasted initial missions to all players");
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }).start();
+            }
         } else {
             turnManager.startPlayerTurn();
         }
@@ -74,7 +91,11 @@ public class GameEngine {
     public void processTurn() {
         if (gameState.isGameOver()) return;
 
-        turnManager.processDrFooTurn(drFooAI, gameState, cardAcquisitionManager);
+        if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
+            turnManager.processDrFooTurn(drFooAI, gameState, cardAcquisitionManager);
+            GameLogger.gameFlow("🎮 Player 1: Processed Dr. Foo turn");
+        }
+
         broadcastGameState("Dr. Foo Turn", "Dr. Foo");
     }
 
@@ -127,8 +148,20 @@ public class GameEngine {
             if (uiUpdateCallback != null) {
                 Platform.runLater(uiUpdateCallback);
             }
+
+            if (missionManager.needsMissionSync(gameState)) {
+                GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
+                requestMissionSync("Need mission sync for card play");
+                return success;
+            }
+
             checkGameEndConditions();
-            broadcastGameState("Played card", player.getName());
+
+            if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
+                broadcastGameState("Played card", player.getName());
+            } else {
+                requestMissionSync("Card played by " + player.getName());
+            }
         }
 
         return success;
@@ -145,7 +178,20 @@ public class GameEngine {
             if (uiUpdateCallback != null) {
                 Platform.runLater(uiUpdateCallback);
             }
-            broadcastGameState("Moved to " + targetEra.getDisplayName(), player.getName());
+
+            if (missionManager.needsMissionSync(gameState)) {
+                GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
+                requestMissionSync("Need mission sync for movement");
+                return success;
+            }
+
+            checkGameEndConditions();
+
+            if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
+                broadcastGameState("Moved to " + targetEra.getDisplayName(), player.getName());
+            } else {
+                requestMissionSync("Movement by " + player.getName());
+            }
         }
 
         return success;
@@ -163,6 +209,13 @@ public class GameEngine {
         }
 
         return success;
+    }
+
+    private void requestMissionSync(String reason) {
+        if (networkManager.isEnabled() && localPlayerIndex != 0) {
+            GameLogger.gameFlow("🎮 Player 2: Requesting mission sync - " + reason);
+            broadcastGameState(reason, getLocalPlayer().getName());
+        }
     }
 
     public void restoreFromGameState(GameState loadedState) {
@@ -231,6 +284,8 @@ public class GameEngine {
             if (uiUpdateCallback != null) {
                 Platform.runLater(uiUpdateCallback);
             }
+
+            GameLogger.gameFlow("🔄 Network update applied - " + networkState.getLastAction());
 
         } catch (Exception e) {
             GameLogger.error("Failed to apply network update: " + e.getMessage());

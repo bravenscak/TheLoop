@@ -19,7 +19,21 @@
     </top>
 
     <center>
-        <CircularBoardView fx:id="circularBoard" />
+        <VBox>
+            <CircularBoardView fx:id="circularBoard" VBox.vgrow="ALWAYS" />
+
+            <VBox fx:id="chatContainer" spacing="8" style="-fx-padding: 15; -fx-background-color: rgba(0,0,0,0.9); -fx-border-color: #444; -fx-border-width: 1;" prefHeight="160">
+                <Label text="💬 Chat" style="-fx-font-weight: bold; -fx-text-fill: #00bfff; -fx-font-size: 14px;"/>
+                <TextArea fx:id="chatArea" prefHeight="130" editable="false" wrapText="true"
+                          style="-fx-control-inner-background: #1a1a1a; -fx-text-fill: #ffffff; -fx-font-size: 12px; -fx-border-color: #555; -fx-border-width: 1;"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <TextField fx:id="chatTextField" HBox.hgrow="ALWAYS" promptText="Type your message here..."
+                               style="-fx-background-color: #1a1a1a; -fx-text-fill: white; -fx-prompt-text-fill: #888; -fx-border-color: #555; -fx-border-width: 1; -fx-padding: 5;"/>
+                    <Button fx:id="sendChatButton" text="Send" onAction="#sendChatMessage" prefWidth="70"
+                            style="-fx-background-color: #007acc; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                </HBox>
+            </VBox>
+        </VBox>
     </center>
 
     <bottom>

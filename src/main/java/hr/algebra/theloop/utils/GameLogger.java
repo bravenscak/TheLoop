@@ -1,6 +1,8 @@
 package hr.algebra.theloop.utils;
 
 
+import hr.algebra.theloop.missions.Mission;
+
 public class GameLogger {
 
     public static final boolean DEBUG_MODE = false;
@@ -45,4 +47,13 @@ public class GameLogger {
         System.out.println("\n🏁 GAME END: " + result + "\n");
     }
 
+    public static void missionCreated(Mission mission) {
+        System.out.println("[MISSION CREATED] " + mission.getName() +
+                " - " + mission.getDescription());
+    }
+
+    public static void missionCompleted(Mission mission, String playerName) {
+        System.out.println("[MISSION COMPLETED] " + mission.getName() +
+                " by " + playerName + " - " + mission.getDescription());
+    }
 }

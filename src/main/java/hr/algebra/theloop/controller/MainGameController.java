@@ -1,21 +1,28 @@
 package hr.algebra.theloop.controller;
 
+import hr.algebra.theloop.chat.ChatManager;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.model.PlayerMode;
+import hr.algebra.theloop.rmi.ChatRemoteService;
 import hr.algebra.theloop.thread.ThreadingManager;
 import hr.algebra.theloop.ui.GameUIManager;
 import hr.algebra.theloop.ui.MultiplayerUIHelper;
 import hr.algebra.theloop.ui.PlayerHandManager;
 import hr.algebra.theloop.utils.DocumentationUtils;
+import hr.algebra.theloop.utils.GameLogger;
 import hr.algebra.theloop.view.CircularBoardView;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 
 import java.net.URL;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.ResourceBundle;
 
 public class MainGameController implements Initializable {
@@ -29,6 +36,10 @@ public class MainGameController implements Initializable {
     @FXML private ListView<String> activeMissionsList;
     @FXML private TextArea multiplayerInfoTextArea;
 
+    @FXML private TextArea chatArea;
+    @FXML private TextField chatTextField;
+    @FXML private Button sendChatButton;
+
     private GameEngine gameEngine;
     private GameUIManager uiManager;
     private PlayerInputHandler inputHandler;
@@ -37,12 +48,14 @@ public class MainGameController implements Initializable {
     private GameActionsHandler actionsHandler;
     private boolean gameRunning;
     private MultiplayerUIHelper multiplayerHelper;
+    private ChatRemoteService chatRemoteService;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         initializeGame();
         initializeManagers();
         initializeThreading();
+        initializeChat();
         setupEventHandlers();
         updateUI();
     }
@@ -89,6 +102,32 @@ public class MainGameController implements Initializable {
         actionsHandler.updateThreadingManager(threadingManager);
     }
 
+    private void initializeChat() {
+        if (gameEngine.getPlayerMode() != PlayerMode.SINGLE_PLAYER) {
+            try {
+                Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+                chatRemoteService = (ChatRemoteService) registry.lookup(ChatRemoteService.CHAT_REMOTE_OBJECT_NAME);
+
+                ChatManager.createAndRunChatTimeline(chatRemoteService, chatArea);
+                chatTextField.setOnAction(e -> sendChatMessage());
+
+                GameLogger.success("🎯 Chat service connected!");
+
+            } catch (RemoteException | NotBoundException e) {
+                GameLogger.warning("Chat service not available: " + e.getMessage());
+                hideChatUI();
+            }
+        } else {
+            hideChatUI();
+        }
+    }
+
+    private void hideChatUI() {
+        chatArea.getParent().setVisible(false);
+        chatArea.getParent().setManaged(false);
+    }
+
+
     private void setupEventHandlers() {
         handManager.setupCardClickHandlers(inputHandler);
 
@@ -103,6 +142,15 @@ public class MainGameController implements Initializable {
                     event.consume();
                 });
             }
+        }
+    }
+
+    @FXML
+    private void sendChatMessage() {
+        if (chatRemoteService != null && gameEngine.getPlayerMode() != PlayerMode.SINGLE_PLAYER) {
+            String playerName = gameEngine.getLocalPlayer().getName();
+            ChatManager.sendChatMessage(chatTextField, chatArea, chatRemoteService,
+                    gameEngine.getPlayerMode(), playerName);
         }
     }
 
@@ -173,7 +221,7 @@ public class MainGameController implements Initializable {
 
         gameEngine = actionsHandler.handleNewGame();
         multiplayerHelper = new MultiplayerUIHelper(gameEngine);
-        gameEngine.setUIUpdateCallback(this::updateUI); // VAŽNO!
+        gameEngine.setUIUpdateCallback(this::updateUI);
         inputHandler = new PlayerInputHandler(gameEngine);
         actionsHandler.updateGameEngine(gameEngine);
         handManager.clearAllSelections();

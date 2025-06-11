@@ -110,7 +110,6 @@ public class GameState implements Serializable {
     public boolean removeDuplicate(Era era, Duplicate duplicate) { return resources.removeDuplicate(era, duplicate); }
     public int getDuplicateCount(Era era) { return resources.getDuplicateCount(era); }
 
-    // ✅ FIX: clearDuplicatesAt direktno briše listu
     public void clearDuplicatesAt(Era era) {
         if (resources != null && resources.getDuplicates() != null) {
             resources.getDuplicates().get(era).clear();
@@ -172,5 +171,9 @@ public class GameState implements Serializable {
         return String.format("GameState[Turn: %d, Dr.Foo: %s, Cycle: %d, Missions: %d/4, Vortexes: %d/3]",
                 turnNumber, drFooPosition.getDisplayName(), currentCycle,
                 totalMissionsCompleted, resources.getVortexCount());
+    }
+
+    public void incrementMissionsCompleted() {
+        this.totalMissionsCompleted++;
     }
 }

@@ -1,5 +1,6 @@
 package hr.algebra.theloop.model;
 
+import hr.algebra.theloop.missions.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -33,6 +34,10 @@ public class NetworkGameState implements Serializable {
     private String lastAction;
     private String lastPlayerName;
 
+    private List<MissionData> activeMissions;
+    private List<MissionData> completedMissions;
+    private int totalMissionsCompleted;
+
     @Data
     @AllArgsConstructor
     public static class DuplicateInfo implements Serializable {
@@ -52,6 +57,49 @@ public class NetworkGameState implements Serializable {
 
         public Duplicate toDuplicate() {
             return new Duplicate(spawnEra, currentEra, turnsActive);
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class MissionData implements Serializable {
+        private String name;
+        private String description;
+        private Era assignedEra;
+        private int currentProgress;
+        private int requiredProgress;
+        private boolean completed;
+        private String missionType;
+
+        public static MissionData fromMission(Mission mission) {
+            String type = "HUNT"; // default
+            if (mission instanceof StabilizeEraMission) {
+                type = "STABILIZE";
+            } else if (mission instanceof EnergySurgeMission) {
+                type = "ENERGY";
+            }
+
+            return new MissionData(
+                    mission.getName(),
+                    mission.getDescription(),
+                    mission.getAssignedEra(),
+                    mission.getCurrentProgress(),
+                    mission.getRequiredProgress(),
+                    mission.isCompleted(),
+                    type
+            );
+        }
+
+        public Mission toMission() {
+            Mission mission = switch (missionType) {
+                case "STABILIZE" -> new StabilizeEraMission(assignedEra);
+                case "ENERGY" -> new EnergySurgeMission(assignedEra);
+                default -> new HuntDuplicatesMission();
+            };
+
+            mission.setCurrentProgress(currentProgress);
+            mission.setCompleted(completed);
+            return mission;
         }
     }
 
@@ -80,6 +128,14 @@ public class NetworkGameState implements Serializable {
             duplicateDetails.add(eraDetails);
         }
 
+        List<MissionData> activeMissionsData = gameState.getActiveMissions().stream()
+                .map(MissionData::fromMission)
+                .toList();
+
+        List<MissionData> completedMissionsData = gameState.getCompletedMissions().stream()
+                .map(MissionData::fromMission)
+                .toList();
+
         return new NetworkGameState(
                 gameState.getTurnNumber(),
                 gameState.getDrFooPosition(),
@@ -95,7 +151,10 @@ public class NetworkGameState implements Serializable {
                 gameState.getCurrentPlayerIndex(),
                 playerMode,
                 lastAction,
-                lastPlayerName
+                lastPlayerName,
+                activeMissionsData,
+                completedMissionsData,
+                gameState.getTotalMissionsCompleted()
         );
     }
 
@@ -129,6 +188,22 @@ public class NetworkGameState implements Serializable {
                 }
             }
         }
+
+        if (activeMissions != null) {
+            gameState.getActiveMissions().clear();
+            for (MissionData missionData : activeMissions) {
+                gameState.getActiveMissions().add(missionData.toMission());
+            }
+        }
+
+        if (completedMissions != null) {
+            gameState.getCompletedMissions().clear();
+            for (MissionData missionData : completedMissions) {
+                gameState.getCompletedMissions().add(missionData.toMission());
+            }
+        }
+
+        gameState.setTotalMissionsCompleted(totalMissionsCompleted);
 
         if (playerStates != null) {
             gameState.setPlayerStates(playerStates);

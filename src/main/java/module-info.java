@@ -3,6 +3,7 @@ module hr.algebra.theloop {
     requires javafx.fxml;
     requires static lombok;
     requires java.desktop;
+    requires java.rmi;
 
     exports hr.algebra.theloop;
 
@@ -13,6 +14,7 @@ module hr.algebra.theloop {
     exports hr.algebra.theloop.utils;
     exports hr.algebra.theloop.thread;
     exports hr.algebra.theloop.persistence;
+    exports hr.algebra.theloop.rmi;
 
     exports hr.algebra.theloop.cards;
 

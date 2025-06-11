@@ -1,83 +1,86 @@
 package hr.algebra.theloop.engine;
 
-import hr.algebra.theloop.missions.*;
-import hr.algebra.theloop.model.GameState;
-import hr.algebra.theloop.model.GameResult;
-import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.missions.EnergySurgeMission;
+import hr.algebra.theloop.missions.HuntDuplicatesMission;
+import hr.algebra.theloop.missions.Mission;
+import hr.algebra.theloop.missions.StabilizeEraMission;
+import hr.algebra.theloop.model.*;
 import hr.algebra.theloop.utils.GameLogger;
+import lombok.RequiredArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
+@RequiredArgsConstructor
 public class MissionManager {
 
-    private final MissionFactory missionFactory;
-
-    public MissionManager(Random random) {
-        this.missionFactory = new MissionFactory(random);
-    }
+    private final Random random;
 
     public void initializeMissions(GameState gameState) {
-        List<Mission> initialMissions = missionFactory.createInitialMissions(gameState);
-
-        for (Mission mission : initialMissions) {
-            gameState.addMission(mission);
-            GameLogger.mission("Initialized: " + mission.getName());
+        if (!gameState.getActiveMissions().isEmpty()) {
+            GameLogger.warning("Missions already initialized, skipping");
+            return;
         }
-    }
 
-    public void updateMissionProgress(GameState gameState) {
-    }
+        List<Era> availableEras = Arrays.asList(Era.values());
 
-    public void checkCompletedMissions(GameState gameState) {
+        Era firstEra = availableEras.get(random.nextInt(availableEras.size()));
+        Era secondEra = availableEras.get(random.nextInt(availableEras.size()));
+
+        Mission firstMission = createRandomMission(firstEra);
+        Mission secondMission = createRandomMission(secondEra);
+
+        gameState.getActiveMissions().add(firstMission);
+        gameState.getActiveMissions().add(secondMission);
+
+        GameLogger.missionCreated(firstMission);
+        GameLogger.missionCreated(secondMission);
     }
 
     public void checkAllMissions(GameState gameState, Player player, String actionType) {
-        List<Mission> missionsToComplete = new ArrayList<>();
-
-        for (Mission mission : gameState.getActiveMissions()) {
-            if (!mission.isCompleted() && mission.checkProgress(gameState, player, actionType)) {
-                if (mission.isCompleted()) {
-                    missionsToComplete.add(mission);
-                }
-            }
+        if (gameState.getActiveMissions().isEmpty()) {
+            GameLogger.gameFlow("No missions to check (waiting for sync)");
+            return;
         }
 
-        for (Mission mission : missionsToComplete) {
-            gameState.completeMission(mission);
-            GameLogger.mission("COMPLETED: " + mission.getName());
+        List<Mission> missionsToCheck = gameState.getActiveMissions().stream()
+                .filter(mission -> !mission.isCompleted())
+                .toList();
 
-            if (gameState.getActiveMissions().size() < 2) {
-                addNewMission(gameState);
+        for (Mission mission : missionsToCheck) {
+            boolean wasCompleted = mission.isCompleted();
+
+            mission.checkProgress(gameState, player, actionType);
+
+            if (!wasCompleted && mission.isCompleted()) {
+                gameState.getActiveMissions().remove(mission);
+                gameState.getCompletedMissions().add(mission);
+                gameState.incrementMissionsCompleted();
+
+                GameLogger.missionCompleted(mission, player.getName());
+
+                Era newEra = Era.values()[random.nextInt(Era.values().length)];
+                Mission newMission = createRandomMission(newEra);
+                gameState.getActiveMissions().add(newMission);
+
+                GameLogger.missionCreated(newMission);
+                break;
             }
-        }
-
-        if (gameState.getTotalMissionsCompleted() >= 4) {
-            gameState.endGame(GameResult.VICTORY);
-            GameLogger.gameEnd("VICTORY: 4 missions completed through player effort!");
         }
     }
 
-    private void addNewMission(GameState gameState) {
-        Set<String> existingMissionTypes = new HashSet<>();
-        for (Mission mission : gameState.getActiveMissions()) {
-            if (mission instanceof StabilizeEraMission) {
-                existingMissionTypes.add("STABILIZE");
-            } else if (mission instanceof EnergySurgeMission) {
-                existingMissionTypes.add("ENERGY");
-            } else if (mission instanceof HuntDuplicatesMission) {
-                existingMissionTypes.add("HUNT");
-            }
-        }
+    public boolean needsMissionSync(GameState gameState) {
+        return gameState.getActiveMissions().isEmpty() && gameState.getCompletedMissions().isEmpty();
+    }
 
-        Mission newMission = missionFactory.createNewMission(gameState, new ArrayList<>(existingMissionTypes));
+    private Mission createRandomMission(Era era) {
+        int missionType = random.nextInt(3);
 
-        if (newMission != null) {
-            gameState.addMission(newMission);
-            GameLogger.mission("New: " + newMission.getName());
-        }
+        return switch (missionType) {
+            case 0 -> new StabilizeEraMission(era);
+            case 1 -> new EnergySurgeMission(era);
+            default -> new HuntDuplicatesMission();
+        };
     }
 }
