@@ -1,5 +1,6 @@
 package hr.algebra.theloop.engine;
 
+import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.model.*;
 import hr.algebra.theloop.networking.NetworkManager;
 import hr.algebra.theloop.utils.GameLogger;
@@ -22,11 +23,13 @@ public class GameEngine {
     private final CardAcquisitionManager cardAcquisitionManager;
     private final PlayerActionManager playerActionManager;
     private final NetworkManager networkManager;
+    private final ConfigurationManager configManager;
     private Runnable uiUpdateCallback;
 
     private int localPlayerIndex = 0;
 
     public GameEngine() {
+        this.configManager = ConfigurationManager.getInstance();
         this.gameState = new GameState();
         this.playerManager = new PlayerManager();
         this.duplicatesInBag = MAX_DUPLICATES_IN_BAG;
@@ -302,12 +305,17 @@ public class GameEngine {
     }
 
     private void checkGameEndConditions() {
-        if (gameState.getTotalMissionsCompleted() >= 4) {
+        missionManager.checkAllMissions(gameState, getCurrentPlayer(), "EndConditionsCheck");
+
+        if (gameState.getTotalMissionsCompleted() >= configManager.getMissionsToWin()) {
             gameState.endGame(GameResult.VICTORY);
-        } else if (gameState.getVortexCount() >= 3) {
+            GameLogger.success("🎉 VICTORY! Completed " + configManager.getMissionsToWin() + " missions!");
+        } else if (gameState.getVortexCount() >= configManager.getMaxVortexes()) {
             gameState.endGame(GameResult.DEFEAT_VORTEXES);
-        } else if (gameState.getCurrentCycle() > 3) {
+            GameLogger.error("💀 DEFEAT! " + configManager.getMaxVortexes() + " vortexes opened!");
+        } else if (gameState.getCurrentCycle() > configManager.getMaxCycles()) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
+            GameLogger.error("💀 DEFEAT! Dr. Foo completed " + configManager.getMaxCycles() + " cycles!");
         }
     }
 
@@ -341,5 +349,19 @@ public class GameEngine {
     public int getTotalDuplicatesOnBoard() {
         return (int) java.util.Arrays.stream(Era.values())
                 .mapToLong(era -> gameState.getDuplicateCount(era)).sum();
+    }
+
+    public void refreshConfiguration() {
+        try {
+            configManager.loadConfiguration();
+            GameLogger.gameFlow("🔄 Configuration refreshed from XML");
+
+            if (uiUpdateCallback != null) {
+                Platform.runLater(uiUpdateCallback);
+            }
+
+        } catch (Exception e) {
+            GameLogger.error("Failed to refresh configuration: " + e.getMessage());
+        }
     }
 }

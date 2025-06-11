@@ -1,8 +1,6 @@
-// 🛠️ UI MISSION UPDATE FIX
-// Add proper mission list refreshing to GameUIManager
-
 package hr.algebra.theloop.ui;
 
+import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.missions.Mission;
@@ -28,10 +26,10 @@ public class GameUIManager {
     private final Button loopButton;
     private final ListView<String> activeMissionsList;
     private final CircularBoardView circularBoard;
-
     private final Label completedMissionsLabel;
     private final Label duplicatesLabel;
     private final Label availableCardsLabel;
+    private final ConfigurationManager configManager;
 
     public GameUIManager(Label turnLabel, Label drFooLocationLabel, Label cycleLabel,
                          Label missionsLabel, Label vortexLabel, Label playerNameLabel,
@@ -52,6 +50,7 @@ public class GameUIManager {
         this.completedMissionsLabel = completedMissionsLabel;
         this.duplicatesLabel = duplicatesLabel;
         this.availableCardsLabel = availableCardsLabel;
+        this.configManager = ConfigurationManager.getInstance();
     }
 
     public void updateAll(GameState state, Player currentPlayer, boolean gameOver,
@@ -72,13 +71,13 @@ public class GameUIManager {
             drFooLocationLabel.setText("Dr. Foo @ " + state.getDrFooPosition().getDisplayName());
         }
         if (cycleLabel != null) {
-            cycleLabel.setText("Cycle: " + state.getCurrentCycle() + "/3");
+            cycleLabel.setText("Cycle: " + state.getCurrentCycle() + "/" + configManager.getMaxCycles());
         }
         if (missionsLabel != null) {
-            missionsLabel.setText("Missions: " + state.getTotalMissionsCompleted() + "/4");
+            missionsLabel.setText("Missions: " + state.getTotalMissionsCompleted() + "/" + configManager.getMissionsToWin());
         }
         if (vortexLabel != null) {
-            vortexLabel.setText("Vortexes: " + state.getVortexCount() + "/3");
+            vortexLabel.setText("Vortexes: " + state.getVortexCount() + "/" + configManager.getMaxVortexes());
         }
     }
 
@@ -115,9 +114,6 @@ public class GameUIManager {
         if (activeMissionsList == null) return;
 
         activeMissionsList.getItems().clear();
-
-        activeMissionsList.getItems().clear();
-
         List<Mission> missions = state.getActiveMissions();
 
         if (missions.isEmpty()) {
@@ -130,12 +126,10 @@ public class GameUIManager {
         }
 
         if (completedMissionsLabel != null) {
-            completedMissionsLabel.setText("Completed: " + state.getTotalMissionsCompleted() + "/4");
+            completedMissionsLabel.setText("Completed: " + state.getTotalMissionsCompleted() + "/" + configManager.getMissionsToWin());
         }
 
         activeMissionsList.refresh();
-
-        System.out.println("🎯 UI: Updated mission list with " + missions.size() + " missions");
     }
 
     private String formatMissionText(Mission mission) {
@@ -185,5 +179,4 @@ public class GameUIManager {
             }
         }
     }
-
 }

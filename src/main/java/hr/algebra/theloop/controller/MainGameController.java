@@ -1,6 +1,7 @@
 package hr.algebra.theloop.controller;
 
 import hr.algebra.theloop.chat.ChatManager;
+import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
@@ -17,6 +18,7 @@ import hr.algebra.theloop.view.CircularBoardView;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 
 import java.net.URL;
 import java.rmi.NotBoundException;
@@ -36,6 +38,7 @@ public class MainGameController implements Initializable {
     @FXML private ListView<String> activeMissionsList;
     @FXML private TextArea multiplayerInfoTextArea;
 
+    @FXML private VBox chatContainer;
     @FXML private TextArea chatArea;
     @FXML private TextField chatTextField;
     @FXML private Button sendChatButton;
@@ -50,14 +53,22 @@ public class MainGameController implements Initializable {
     private MultiplayerUIHelper multiplayerHelper;
     private ChatRemoteService chatRemoteService;
 
+    private ConfigurationController configController;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        initializeConfiguration();
         initializeGame();
         initializeManagers();
         initializeThreading();
         initializeChat();
         setupEventHandlers();
         updateUI();
+    }
+
+    private void initializeConfiguration() {
+        configController = new ConfigurationController();
+        GameLogger.gameFlow("🔧 Configuration system initialized");
     }
 
     private void initializeGame() {
@@ -105,13 +116,14 @@ public class MainGameController implements Initializable {
     private void initializeChat() {
         if (gameEngine.getPlayerMode() != PlayerMode.SINGLE_PLAYER) {
             try {
-                Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+                ConfigurationManager configManager = ConfigurationManager.getInstance();
+                Registry registry = LocateRegistry.getRegistry("localhost", configManager.getChatPort());
                 chatRemoteService = (ChatRemoteService) registry.lookup(ChatRemoteService.CHAT_REMOTE_OBJECT_NAME);
 
                 ChatManager.createAndRunChatTimeline(chatRemoteService, chatArea);
                 chatTextField.setOnAction(e -> sendChatMessage());
 
-                GameLogger.success("🎯 Chat service connected!");
+                GameLogger.success("🎯 Chat service connected on port " + configManager.getChatPort());
 
             } catch (RemoteException | NotBoundException e) {
                 GameLogger.warning("Chat service not available: " + e.getMessage());
@@ -123,10 +135,11 @@ public class MainGameController implements Initializable {
     }
 
     private void hideChatUI() {
-        chatArea.getParent().setVisible(false);
-        chatArea.getParent().setManaged(false);
+        if (chatContainer != null) {
+            chatContainer.setVisible(false);
+            chatContainer.setManaged(false);
+        }
     }
-
 
     private void setupEventHandlers() {
         handManager.setupCardClickHandlers(inputHandler);
@@ -142,6 +155,57 @@ public class MainGameController implements Initializable {
                     event.consume();
                 });
             }
+        }
+    }
+
+    @FXML private void setEasyMode() {
+        configController.setEasyMode();
+        refreshGameWithNewConfig();
+    }
+
+    @FXML private void setNormalMode() {
+        configController.setNormalMode();
+        refreshGameWithNewConfig();
+    }
+
+    @FXML private void setHardMode() {
+        configController.setHardMode();
+        refreshGameWithNewConfig();
+    }
+
+    @FXML private void adjustMaxCycles() {
+        configController.adjustMaxCycles();
+        refreshGameWithNewConfig();
+    }
+
+    @FXML private void adjustMissionsToWin() {
+        configController.adjustMissionsToWin();
+        refreshGameWithNewConfig();
+    }
+
+    @FXML private void adjustMaxVortexes() {
+        configController.adjustMaxVortexes();
+        refreshGameWithNewConfig();
+    }
+
+    @FXML private void adjustServerPort() {
+        configController.adjustServerPort();
+    }
+
+    @FXML private void showConfiguration() {
+        configController.showCurrentConfiguration();
+    }
+
+    @FXML private void resetConfiguration() {
+        configController.resetToDefaults();
+        refreshGameWithNewConfig();
+    }
+
+    private void refreshGameWithNewConfig() {
+        if (gameEngine != null) {
+            gameEngine.refreshConfiguration();
+            updateUI();
+            GameLogger.gameFlow("🔄 Game refreshed with new configuration");
         }
     }
 

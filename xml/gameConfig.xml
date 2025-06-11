@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<GameConfiguration>
+    <GameSettings>
+        <maxCycles>3</maxCycles>
+        <missionsToWin>4</missionsToWin>
+        <maxVortexes>3</maxVortexes>
+        <maxHandSize>3</maxHandSize>
+    </GameSettings>
+    <NetworkSettings>
+        <serverPort>12345</serverPort>
+        <chatPort>1099</chatPort>
+        <connectionTimeout>5000</connectionTimeout>
+    </NetworkSettings>
+    <PlayerSettings>
+        <startingEra>DAWN_OF_TIME</startingEra>
+        <startingEnergy>1</startingEnergy>
+        <freeBatteryUses>1</freeBatteryUses>
+    </PlayerSettings>
+</GameConfiguration>

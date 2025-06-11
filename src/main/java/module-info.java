@@ -15,6 +15,7 @@ module hr.algebra.theloop {
     exports hr.algebra.theloop.thread;
     exports hr.algebra.theloop.persistence;
     exports hr.algebra.theloop.rmi;
+    exports hr.algebra.theloop.config;
 
     exports hr.algebra.theloop.cards;
 
