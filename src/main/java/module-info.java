@@ -4,6 +4,7 @@ module hr.algebra.theloop {
     requires static lombok;
     requires java.desktop;
     requires java.rmi;
+    requires java.naming;
 
     exports hr.algebra.theloop;
 
@@ -15,6 +16,7 @@ module hr.algebra.theloop {
     exports hr.algebra.theloop.thread;
     exports hr.algebra.theloop.persistence;
     exports hr.algebra.theloop.rmi;
+    exports hr.algebra.theloop.jndi;
     exports hr.algebra.theloop.config;
 
     exports hr.algebra.theloop.cards;

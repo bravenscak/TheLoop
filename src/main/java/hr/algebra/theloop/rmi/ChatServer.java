@@ -1,5 +1,7 @@
 package hr.algebra.theloop.rmi;
 
+import hr.algebra.theloop.jndi.ConfigurationKey;
+import hr.algebra.theloop.jndi.ConfigurationReader;
 import hr.algebra.theloop.utils.GameLogger;
 
 import java.rmi.RemoteException;
@@ -10,11 +12,11 @@ import java.rmi.server.UnicastRemoteObject;
 public class ChatServer {
 
     private static final int RANDOM_PORT_HINT = 0;
-    private static final int RMI_PORT = 1099;
+    private static final int rmiPort = ConfigurationReader.getIntegerValueForKey(ConfigurationKey.RMI_PORT);
 
     public static void main(String[] args) {
         try {
-            Registry registry = LocateRegistry.createRegistry(RMI_PORT);
+            Registry registry = LocateRegistry.createRegistry(rmiPort);
 
             ChatRemoteService chatRemoteService = new ChatRemoteServiceImpl();
 
@@ -23,7 +25,7 @@ public class ChatServer {
 
             registry.rebind(ChatRemoteService.CHAT_REMOTE_OBJECT_NAME, skeleton);
 
-            GameLogger.success("🎯 Chat Server started on port " + RMI_PORT);
+            GameLogger.success("🎯 Chat Server started on port " + rmiPort);
             GameLogger.gameFlow("Chat service registered as: " + ChatRemoteService.CHAT_REMOTE_OBJECT_NAME);
 
             while (true) {

@@ -116,14 +116,9 @@ public class MainGameController implements Initializable {
     private void initializeChat() {
         if (gameEngine.getPlayerMode() != PlayerMode.SINGLE_PLAYER) {
             try {
-                ConfigurationManager configManager = ConfigurationManager.getInstance();
-                Registry registry = LocateRegistry.getRegistry("localhost", configManager.getChatPort());
-                chatRemoteService = (ChatRemoteService) registry.lookup(ChatRemoteService.CHAT_REMOTE_OBJECT_NAME);
-
+                chatRemoteService = ChatManager.connectToChatService();
                 ChatManager.createAndRunChatTimeline(chatRemoteService, chatArea);
                 chatTextField.setOnAction(e -> sendChatMessage());
-
-                GameLogger.success("🎯 Chat service connected on port " + configManager.getChatPort());
 
             } catch (RemoteException | NotBoundException e) {
                 GameLogger.warning("Chat service not available: " + e.getMessage());

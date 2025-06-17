@@ -1,5 +1,7 @@
 package hr.algebra.theloop.networking;
 
+import hr.algebra.theloop.jndi.ConfigurationKey;
+import hr.algebra.theloop.jndi.ConfigurationReader;
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.NetworkGameState;
 import hr.algebra.theloop.model.PlayerMode;
@@ -15,9 +17,12 @@ public class NetworkingUtils {
 
     private NetworkingUtils() {}
 
-    public static final String DEFAULT_HOST = "localhost";
-    public static final int PLAYER_ONE_PORT = 12345;
-    public static final int PLAYER_TWO_PORT = 12346;
+    public static final int PLAYER_ONE_PORT =
+            ConfigurationReader.getIntegerValueForKey(ConfigurationKey.PLAYER_ONE_SERVER_PORT);
+    static final int PLAYER_TWO_PORT =
+            ConfigurationReader.getIntegerValueForKey(ConfigurationKey.PLAYER_TWO_SERVER_PORT);
+    public static final String DEFAULT_HOST =
+            ConfigurationReader.getStringValueForKey(ConfigurationKey.HOSTNAME);
 
     public static boolean sendGameState(GameState gameState, PlayerMode currentPlayerMode,
                                         String lastAction, String lastPlayerName) {

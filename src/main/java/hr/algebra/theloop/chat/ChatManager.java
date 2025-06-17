@@ -1,5 +1,7 @@
 package hr.algebra.theloop.chat;
 
+import hr.algebra.theloop.jndi.ConfigurationReader;
+import hr.algebra.theloop.jndi.ConfigurationKey;
 import hr.algebra.theloop.model.PlayerMode;
 import hr.algebra.theloop.rmi.ChatRemoteService;
 import hr.algebra.theloop.utils.GameLogger;
@@ -10,7 +12,10 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.util.Duration;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -18,6 +23,14 @@ import java.util.List;
 public class ChatManager {
 
     private ChatManager() {}
+
+    public static ChatRemoteService connectToChatService() throws RemoteException, NotBoundException {
+        String hostname = ConfigurationReader.getStringValueForKey(ConfigurationKey.HOSTNAME);
+        int rmiPort = ConfigurationReader.getIntegerValueForKey(ConfigurationKey.RMI_PORT);
+
+        Registry registry = LocateRegistry.getRegistry(hostname, rmiPort);
+        return (ChatRemoteService) registry.lookup(ChatRemoteService.CHAT_REMOTE_OBJECT_NAME);
+    }
 
     public static void createAndRunChatTimeline(ChatRemoteService chatRemoteService,
                                                 TextArea chatMessagesTextArea) {
