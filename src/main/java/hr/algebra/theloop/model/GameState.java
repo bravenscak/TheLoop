@@ -11,6 +11,7 @@ import java.util.*;
 public class GameState implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private static final int MAX_DUPLICATES_IN_BAG = 28;
 
     @NonNull private Era drFooPosition;
     private int drFooMovesThisCycle;
@@ -46,6 +47,14 @@ public class GameState implements Serializable {
 
         this.playerStates = new ArrayList<>();
         this.currentPlayerIndex = 0;
+    }
+
+    public int recalculateDuplicatesInBag() {
+        int duplicatesOnBoard = 0;
+        for (Era era : Era.values()) {
+            duplicatesOnBoard += getDuplicateCount(era);
+        }
+        return Math.max(0, MAX_DUPLICATES_IN_BAG - duplicatesOnBoard);
     }
 
     public void savePlayerState(Player player) {

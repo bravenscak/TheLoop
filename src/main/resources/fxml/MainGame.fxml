@@ -49,7 +49,6 @@
                 <Label fx:id="playerLocationLabel" text="@ Dawn" styleClass="player-location" />
                 <Button fx:id="endTurnButton" text="End Turn" onAction="#endTurn" prefWidth="150" />
                 <Button fx:id="loopButton" text="LOOP" onAction="#performLoop" prefWidth="80" />
-                <Button text="Acquire" onAction="#acquireCard" prefWidth="80" />
             </HBox>
         </VBox>
     </bottom>

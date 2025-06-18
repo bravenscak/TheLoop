@@ -10,6 +10,7 @@ import hr.algebra.theloop.view.CircularBoardView;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextArea;
 
 import java.util.List;
 
@@ -30,6 +31,10 @@ public class GameUIManager {
     private final Label duplicatesLabel;
     private final Label availableCardsLabel;
     private final ConfigurationManager configManager;
+
+    private MultiplayerUIHelper multiplayerHelper;
+    private PlayerHandManager handManager;
+    private TextArea multiplayerInfoTextArea;
 
     public GameUIManager(Label turnLabel, Label drFooLocationLabel, Label cycleLabel,
                          Label missionsLabel, Label vortexLabel, Label playerNameLabel,
@@ -53,6 +58,14 @@ public class GameUIManager {
         this.configManager = ConfigurationManager.getInstance();
     }
 
+    public void setMultiplayerComponents(MultiplayerUIHelper multiplayerHelper,
+                                         PlayerHandManager handManager,
+                                         TextArea multiplayerInfoTextArea) {
+        this.multiplayerHelper = multiplayerHelper;
+        this.handManager = handManager;
+        this.multiplayerInfoTextArea = multiplayerInfoTextArea;
+    }
+
     public void updateAll(GameState state, Player currentPlayer, boolean gameOver,
                           boolean waitingForPlayerInput, int duplicatesInBag, int duplicatesOnBoard) {
         updateStatusLabels(state);
@@ -61,6 +74,18 @@ public class GameUIManager {
         updateMissions(state);
         updateGameStatus(duplicatesInBag, duplicatesOnBoard, state);
         updateButtons(gameOver, waitingForPlayerInput);
+
+        if (multiplayerHelper != null) {
+            if (multiplayerInfoTextArea != null) {
+                multiplayerHelper.updateMultiplayerInfoLabel(multiplayerInfoTextArea);
+            }
+            multiplayerHelper.updatePlayerPositions(circularBoard);
+        }
+
+        if (handManager != null) {
+            Player displayPlayer = multiplayerHelper != null ? multiplayerHelper.getDisplayPlayer() : currentPlayer;
+            handManager.updateHand(displayPlayer);
+        }
     }
 
     private void updateStatusLabels(GameState state) {

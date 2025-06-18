@@ -5,11 +5,9 @@ import hr.algebra.theloop.model.*;
 import hr.algebra.theloop.networking.NetworkManager;
 import hr.algebra.theloop.utils.GameLogger;
 import javafx.application.Platform;
-import lombok.Data;
 
 import java.util.Random;
 
-@Data
 public class GameEngine {
     private static final int MAX_DUPLICATES_IN_BAG = 28;
 
@@ -200,20 +198,6 @@ public class GameEngine {
         return success;
     }
 
-    public boolean acquireCard(Player player) {
-        if (!isLocalPlayer(player)) {
-            return false;
-        }
-
-        boolean success = playerActionManager.acquireCard(player);
-
-        if (success) {
-            broadcastGameState("Acquired card", player.getName());
-        }
-
-        return success;
-    }
-
     private void requestMissionSync(String reason) {
         if (networkManager.isEnabled() && localPlayerIndex != 0) {
             GameLogger.gameFlow("🎮 Player 2: Requesting mission sync - " + reason);
@@ -234,7 +218,7 @@ public class GameEngine {
                     loadedState.getCurrentPlayerIndex()
             );
         } else if (playerManager.isEmpty()) {
-            addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
+            playerManager.addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
         }
 
         if (networkManager.isMultiplayer()) {
@@ -243,15 +227,7 @@ public class GameEngine {
             turnManager.setWaitingForPlayerInput(!loadedState.isGameOver());
         }
 
-        recalculateDuplicatesInBag(loadedState);
-    }
-
-    private void recalculateDuplicatesInBag(GameState loadedState) {
-        this.duplicatesInBag = MAX_DUPLICATES_IN_BAG;
-        for (Era era : Era.values()) {
-            this.duplicatesInBag -= loadedState.getDuplicateCount(era);
-        }
-        this.duplicatesInBag = Math.max(0, this.duplicatesInBag);
+        this.duplicatesInBag = gameState.recalculateDuplicatesInBag();
     }
 
     public void broadcastGameState(String lastAction, String playerName) {
@@ -282,7 +258,7 @@ public class GameEngine {
                 );
             }
 
-            recalculateDuplicatesInBag(this.gameState);
+            this.duplicatesInBag = gameState.recalculateDuplicatesInBag();
 
             if (uiUpdateCallback != null) {
                 Platform.runLater(uiUpdateCallback);
@@ -319,10 +295,6 @@ public class GameEngine {
         }
     }
 
-    public void addPlayer(String name, Era startingEra) {
-        playerManager.addPlayer(name, startingEra);
-    }
-
     public void shutdown() {
         networkManager.stop();
     }
@@ -351,17 +323,9 @@ public class GameEngine {
                 .mapToLong(era -> gameState.getDuplicateCount(era)).sum();
     }
 
-    public void refreshConfiguration() {
-        try {
-            configManager.loadConfiguration();
-            GameLogger.gameFlow("🔄 Configuration refreshed from XML");
-
-            if (uiUpdateCallback != null) {
-                Platform.runLater(uiUpdateCallback);
-            }
-
-        } catch (Exception e) {
-            GameLogger.error("Failed to refresh configuration: " + e.getMessage());
-        }
-    }
+    public GameState getGameState() { return gameState; }
+    public PlayerManager getPlayerManager() { return playerManager; }
+    public int getDuplicatesInBag() { return duplicatesInBag; }
+    public MissionManager getMissionManager() { return missionManager; }
+    public ConfigurationManager getConfigManager() { return configManager; }
 }

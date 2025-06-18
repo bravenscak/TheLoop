@@ -1,7 +1,9 @@
 package hr.algebra.theloop.ui;
 
 import hr.algebra.theloop.engine.GameEngine;
+import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.view.CircularBoardView;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 
@@ -65,6 +67,44 @@ public class MultiplayerUIHelper {
             TextArea textArea = (TextArea) multiplayerInfoControl;
             textArea.setText(infoText);
             textArea.setVisible(true);
+        }
+    }
+
+    public void updatePlayerPositions(CircularBoardView circularBoard) {
+        if (gameEngine == null || !gameEngine.isMultiplayer() || circularBoard == null) {
+            return;
+        }
+
+        clearPlayerIndicators(circularBoard);
+
+        for (int i = 0; i < gameEngine.getPlayerManager().getPlayers().size(); i++) {
+            Player player = gameEngine.getPlayerManager().getPlayers().get(i);
+            boolean isLocal = (i == gameEngine.getLocalPlayerIndex());
+            addPlayerIndicatorToEra(circularBoard, player.getCurrentEra(), player.getName(), isLocal);
+        }
+    }
+
+    private void clearPlayerIndicators(CircularBoardView circularBoard) {
+        for (Era era : Era.values()) {
+            var eraView = circularBoard.getEraView(era);
+            if (eraView != null) {
+                eraView.getStyleClass().removeAll("era-has-bruno", "era-has-alice", "era-has-local-player");
+            }
+        }
+    }
+
+    private void addPlayerIndicatorToEra(CircularBoardView circularBoard, Era era, String playerName, boolean isLocal) {
+        var eraView = circularBoard.getEraView(era);
+        if (eraView != null) {
+            if (playerName.contains("Bruno")) {
+                eraView.getStyleClass().add("era-has-bruno");
+            } else if (playerName.contains("Alice")) {
+                eraView.getStyleClass().add("era-has-alice");
+            }
+
+            if (isLocal) {
+                eraView.getStyleClass().add("era-has-local-player");
+            }
         }
     }
 

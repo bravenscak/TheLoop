@@ -31,6 +31,20 @@ public class ConfigurationManager {
         }
     }
 
+    public void refreshConfiguration(Runnable uiUpdateCallback) {
+        try {
+            loadConfiguration();
+            GameLogger.gameFlow("🔄 Configuration refreshed from XML");
+
+            if (uiUpdateCallback != null) {
+                uiUpdateCallback.run();
+            }
+
+        } catch (Exception e) {
+            GameLogger.error("Failed to refresh configuration: " + e.getMessage());
+        }
+    }
+
     public void saveConfiguration() {
         try {
             XmlUtils.saveGameConfiguration(currentConfig);

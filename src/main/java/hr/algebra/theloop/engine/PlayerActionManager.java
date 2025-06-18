@@ -41,7 +41,6 @@ public class PlayerActionManager {
         card.execute(gameState, player);
         card.exhaust();
 
-        // ✅ DODAJ: Provjeri promjenu duplikata
         int totalDuplicatesAfter = getTotalDuplicates();
         boolean duplicatesChanged = (totalDuplicatesBefore != totalDuplicatesAfter);
 
@@ -80,17 +79,6 @@ public class PlayerActionManager {
             return true;
         }
 
-        return false;
-    }
-
-    public boolean acquireCard(Player player) {
-        Era playerEra = player.getCurrentEra();
-        ArtifactCard acquiredCard = cardAcquisitionManager.acquireCard(playerEra, player);
-
-        if (acquiredCard != null) {
-            GameLogger.playerAction(player.getName(), "Acquired " + acquiredCard.getName());
-            return true;
-        }
         return false;
     }
 
