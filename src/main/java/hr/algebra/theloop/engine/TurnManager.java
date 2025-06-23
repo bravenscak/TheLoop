@@ -2,6 +2,9 @@ package hr.algebra.theloop.engine;
 
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
+import hr.algebra.theloop.model.PlayerMode;
+import hr.algebra.theloop.networking.NetworkManager;
+import hr.algebra.theloop.utils.GameLogger;
 
 import java.util.List;
 
@@ -34,10 +37,55 @@ public class TurnManager {
         cardManager.addRandomCardsToEras(gameState, 1);
 
         endAllPlayerTurns();
-
         startPlayerTurn();
     }
 
+    public void processMultiplayerTurn(PlayerManager playerManager, GameState gameState,
+                                       DrFooAI drFooAI, CardAcquisitionManager cardManager,
+                                       NetworkManager networkManager, int localPlayerIndex) {
+        if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
+            processDrFooTurn(drFooAI, gameState, cardManager);
+            GameLogger.gameFlow("🎮 Player 1: Processed Dr. Foo turn");
+        }
+    }
+
+    public void endMultiplayerTurn(PlayerManager playerManager, GameState gameState,
+                                   NetworkManager networkManager, int localPlayerIndex) {
+        if (!isWaitingForPlayerInput()) return;
+
+        if (networkManager.isMultiplayer()) {
+            if (localPlayerIndex != 0) {
+                GameLogger.warning("Only Player 1 can end turn in multiplayer!");
+                return;
+            }
+
+            playerManager.endPlayerTurns();
+            gameState.saveAllPlayerStates(playerManager.getPlayers(), playerManager.getCurrentPlayerIndex());
+        } else {
+            String currentPlayerName = playerManager.getCurrentPlayer().getName();
+            endPlayerTurn(playerManager.getPlayers(), gameState);
+            GameLogger.gameFlow("Turn ended by " + currentPlayerName);
+        }
+    }
+
+    public void setupMultiplayerMode(NetworkManager networkManager, int localPlayerIndex) {
+        if (networkManager.isMultiplayer()) {
+            setWaitingForPlayerInput(true);
+
+            if (localPlayerIndex == 0) {
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(2000);
+                        GameLogger.gameFlow("🎮 Player 1: Ready for mission broadcast");
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }).start();
+            }
+        } else {
+            startPlayerTurn();
+        }
+    }
 
     public boolean isWaitingForPlayerInput() {
         return waitingForPlayerInput;

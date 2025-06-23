@@ -4,7 +4,6 @@ import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.model.*;
 import hr.algebra.theloop.networking.NetworkManager;
 import hr.algebra.theloop.utils.GameLogger;
-import javafx.application.Platform;
 
 import java.util.Random;
 
@@ -20,9 +19,8 @@ public class GameEngine {
     private final MissionManager missionManager;
     private final CardAcquisitionManager cardAcquisitionManager;
     private final PlayerActionManager playerActionManager;
-    private final NetworkManager networkManager;
+    private final NetworkCoordinator networkCoordinator;
     private final ConfigurationManager configManager;
-    private Runnable uiUpdateCallback;
 
     private int localPlayerIndex = 0;
 
@@ -38,11 +36,14 @@ public class GameEngine {
         this.missionManager = new MissionManager(random);
         this.cardAcquisitionManager = new CardAcquisitionManager(random);
         this.playerActionManager = new PlayerActionManager(gameState, missionManager, cardAcquisitionManager);
-        this.networkManager = new NetworkManager(this::handleNetworkUpdate);
+
+        NetworkManager networkManager = new NetworkManager(this::handleNetworkUpdate);
+        this.networkCoordinator = new NetworkCoordinator(networkManager, localPlayerIndex);
     }
 
     public void setPlayerMode(PlayerMode playerMode) {
-        networkManager.setPlayerMode(playerMode);
+        networkCoordinator.getNetworkManager().setPlayerMode(playerMode);
+        playerActionManager.setPlayerMode(playerMode, localPlayerIndex);
     }
 
     public void setupMultiplayerPlayers(PlayerMode playerMode) {
@@ -63,60 +64,34 @@ public class GameEngine {
 
         cardAcquisitionManager.initializeAvailableCards(gameState);
 
-        if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
+        if (networkCoordinator.shouldBroadcast()) {
             missionManager.initializeMissions(gameState);
             GameLogger.gameFlow("🎮 Player 1: Initialized missions");
         }
 
         playerManager.setupInitialPlayer();
+        turnManager.setupMultiplayerMode(networkCoordinator.getNetworkManager(), localPlayerIndex);
 
-        if (networkManager.isMultiplayer()) {
-            turnManager.setWaitingForPlayerInput(true);
-
-            if (localPlayerIndex == 0) {
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(2000);
-                        broadcastCompleteGameState("Missions Initialized", "System");
-                        GameLogger.gameFlow("🎮 Player 1: Broadcasted initial missions to all players");
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }).start();
-            }
-        } else {
-            turnManager.startPlayerTurn();
-        }
+        networkCoordinator.scheduleInitialBroadcast(() -> {
+            networkCoordinator.broadcastCompleteGameState(gameState, playerManager, "Missions Initialized", "System");
+        });
     }
 
     public void processTurn() {
         if (gameState.isGameOver()) return;
-
-        if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
-            turnManager.processDrFooTurn(drFooAI, gameState, cardAcquisitionManager);
-            GameLogger.gameFlow("🎮 Player 1: Processed Dr. Foo turn");
-        }
-
-        broadcastGameState("Dr. Foo Turn", "Dr. Foo");
+        turnManager.processMultiplayerTurn(playerManager, gameState, drFooAI, cardAcquisitionManager,
+                networkCoordinator.getNetworkManager(), localPlayerIndex);
+        networkCoordinator.broadcastGameState(gameState, playerManager, "Dr. Foo Turn", "Dr. Foo");
     }
 
     public void endPlayerTurn() {
-        if (!isWaitingForPlayerInput()) return;
+        turnManager.endMultiplayerTurn(playerManager, gameState, networkCoordinator.getNetworkManager(), localPlayerIndex);
 
-        if (networkManager.isMultiplayer()) {
-            if (localPlayerIndex != 0) {
-                GameLogger.warning("Only Player 1 can end turn in multiplayer!");
-                return;
-            }
-
-            playerManager.endPlayerTurns();
-            saveGame();
+        if (networkCoordinator.isMultiplayerHost()) {
             processTurn();
-            broadcastCompleteGameState("Dr. Foo Turn Complete", "System");
-        } else {
-            String currentPlayerName = getCurrentPlayer().getName();
-            turnManager.endPlayerTurn(playerManager.getPlayers(), gameState);
-            broadcastGameState("End Turn", currentPlayerName);
+            networkCoordinator.broadcastCompleteGameState(gameState, playerManager, "Dr. Foo Turn Complete", "System");
+        } else if (!isMultiplayer()) {
+            networkCoordinator.broadcastGameState(gameState, playerManager, "End Turn", getCurrentPlayer().getName());
         }
     }
 
@@ -127,41 +102,32 @@ public class GameEngine {
     public boolean spawnDuplicate(Era era) {
         if (duplicatesInBag <= 0) return false;
 
-        Duplicate newDuplicate = new Duplicate(era);
-        gameState.addDuplicate(era, newDuplicate);
-        duplicatesInBag--;
-
-        if (networkManager.isEnabled()) {
-            broadcastGameState("Duplicate spawned at " + era.getDisplayName(), "Dr. Foo");
+        boolean success = playerActionManager.spawnDuplicate(era, duplicatesInBag);
+        if (success) {
+            duplicatesInBag--;
+            if (networkCoordinator.getNetworkManager().isEnabled()) {
+                networkCoordinator.broadcastGameState(gameState, playerManager, "Duplicate spawned at " + era.getDisplayName(), "Dr. Foo");
+            }
         }
-
-        return true;
+        return success;
     }
 
     public boolean playCard(Player player, int cardIndex, Era targetEra) {
-        if (!isLocalPlayer(player)) {
-            return false;
-        }
-
         boolean success = playerActionManager.playCard(player, cardIndex, targetEra);
 
         if (success) {
-            if (uiUpdateCallback != null) {
-                Platform.runLater(uiUpdateCallback);
-            }
-
-            if (missionManager.needsMissionSync(gameState)) {
+            if (missionManager.shouldRequestSync(gameState)) {
                 GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
-                requestMissionSync("Need mission sync for card play");
+                networkCoordinator.requestMissionSync(getLocalPlayer(), "Need mission sync for card play");
                 return success;
             }
 
-            checkGameEndConditions();
+            missionManager.checkGameEndConditions(gameState, configManager);
 
-            if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
-                broadcastGameState("Played card", player.getName());
+            if (networkCoordinator.shouldBroadcast()) {
+                networkCoordinator.broadcastGameState(gameState, playerManager, "Played card", player.getName());
             } else {
-                requestMissionSync("Card played by " + player.getName());
+                networkCoordinator.requestMissionSync(getLocalPlayer(), "Card played by " + player.getName());
             }
         }
 
@@ -169,40 +135,25 @@ public class GameEngine {
     }
 
     public boolean movePlayer(Player player, Era targetEra) {
-        if (!isLocalPlayer(player)) {
-            return false;
-        }
-
         boolean success = playerActionManager.movePlayer(player, targetEra);
 
         if (success) {
-            if (uiUpdateCallback != null) {
-                Platform.runLater(uiUpdateCallback);
-            }
-
-            if (missionManager.needsMissionSync(gameState)) {
+            if (missionManager.shouldRequestSync(gameState)) {
                 GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
-                requestMissionSync("Need mission sync for movement");
+                networkCoordinator.requestMissionSync(getLocalPlayer(), "Need mission sync for movement");
                 return success;
             }
 
-            checkGameEndConditions();
+            missionManager.checkGameEndConditions(gameState, configManager);
 
-            if (!networkManager.isMultiplayer() || localPlayerIndex == 0) {
-                broadcastGameState("Moved to " + targetEra.getDisplayName(), player.getName());
+            if (networkCoordinator.shouldBroadcast()) {
+                networkCoordinator.broadcastGameState(gameState, playerManager, "Moved to " + targetEra.getDisplayName(), player.getName());
             } else {
-                requestMissionSync("Movement by " + player.getName());
+                networkCoordinator.requestMissionSync(getLocalPlayer(), "Movement by " + player.getName());
             }
         }
 
         return success;
-    }
-
-    private void requestMissionSync(String reason) {
-        if (networkManager.isEnabled() && localPlayerIndex != 0) {
-            GameLogger.gameFlow("🎮 Player 2: Requesting mission sync - " + reason);
-            broadcastGameState(reason, getLocalPlayer().getName());
-        }
     }
 
     public void restoreFromGameState(GameState loadedState) {
@@ -221,7 +172,7 @@ public class GameEngine {
             playerManager.addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
         }
 
-        if (networkManager.isMultiplayer()) {
+        if (isMultiplayer()) {
             turnManager.setWaitingForPlayerInput(true);
         } else {
             turnManager.setWaitingForPlayerInput(!loadedState.isGameOver());
@@ -231,76 +182,25 @@ public class GameEngine {
     }
 
     public void broadcastGameState(String lastAction, String playerName) {
-        if (networkManager.isEnabled()) {
-            gameState.saveAllPlayerStates(playerManager.getPlayers(), playerManager.getCurrentPlayerIndex());
-            networkManager.sendGameState(gameState, lastAction, playerName);
-        }
+        networkCoordinator.broadcastGameState(gameState, playerManager, lastAction, playerName);
     }
 
     public void broadcastCompleteGameState(String action, String playerName) {
-        if (networkManager.isEnabled()) {
-            for (Player player : playerManager.getPlayers()) {
-                gameState.savePlayerState(player);
-            }
-            gameState.saveAllPlayerStates(playerManager.getPlayers(), playerManager.getCurrentPlayerIndex());
-            networkManager.sendGameState(gameState, action, playerName);
-        }
+        networkCoordinator.broadcastCompleteGameState(gameState, playerManager, action, playerName);
     }
 
     private void handleNetworkUpdate(NetworkGameState networkState) {
-        try {
-            networkState.applyToGameState(this.gameState);
-
-            if (networkState.getPlayerStates() != null && !networkState.getPlayerStates().isEmpty()) {
-                playerManager.restorePlayersFromStates(
-                        networkState.getPlayerStates(),
-                        networkState.getCurrentPlayerIndex()
-                );
-            }
-
-            this.duplicatesInBag = gameState.recalculateDuplicatesInBag();
-
-            if (uiUpdateCallback != null) {
-                Platform.runLater(uiUpdateCallback);
-            }
-
-            GameLogger.gameFlow("🔄 Network update applied - " + networkState.getLastAction());
-
-        } catch (Exception e) {
-            GameLogger.error("Failed to apply network update: " + e.getMessage());
-        }
-    }
-
-    private boolean isLocalPlayer(Player player) {
-        if (networkManager.getPlayerMode() == PlayerMode.SINGLE_PLAYER) {
-            return true;
-        }
-
-        int playerIndex = playerManager.getPlayers().indexOf(player);
-        return playerIndex == localPlayerIndex;
-    }
-
-    private void checkGameEndConditions() {
-        missionManager.checkAllMissions(gameState, getCurrentPlayer(), "EndConditionsCheck");
-
-        if (gameState.getTotalMissionsCompleted() >= configManager.getMissionsToWin()) {
-            gameState.endGame(GameResult.VICTORY);
-            GameLogger.success("🎉 VICTORY! Completed " + configManager.getMissionsToWin() + " missions!");
-        } else if (gameState.getVortexCount() >= configManager.getMaxVortexes()) {
-            gameState.endGame(GameResult.DEFEAT_VORTEXES);
-            GameLogger.error("💀 DEFEAT! " + configManager.getMaxVortexes() + " vortexes opened!");
-        } else if (gameState.getCurrentCycle() > configManager.getMaxCycles()) {
-            gameState.endGame(GameResult.DEFEAT_CYCLES);
-            GameLogger.error("💀 DEFEAT! Dr. Foo completed " + configManager.getMaxCycles() + " cycles!");
-        }
+        networkCoordinator.handleNetworkUpdate(gameState, playerManager, networkState);
+        this.duplicatesInBag = gameState.recalculateDuplicatesInBag();
     }
 
     public void shutdown() {
-        networkManager.stop();
+        networkCoordinator.getNetworkManager().stop();
     }
 
     public void setUIUpdateCallback(Runnable callback) {
-        this.uiUpdateCallback = callback;
+        playerActionManager.setUIUpdateCallback(callback);
+        networkCoordinator.setUIUpdateCallback(callback);
     }
 
     public Player getCurrentPlayer() { return playerManager.getCurrentPlayer(); }
@@ -312,10 +212,10 @@ public class GameEngine {
     }
     public boolean isGameOver() { return gameState.isGameOver(); }
     public boolean isWaitingForPlayerInput() {
-        return networkManager.isMultiplayer() ? !gameState.isGameOver() : turnManager.isWaitingForPlayerInput();
+        return isMultiplayer() ? !gameState.isGameOver() : turnManager.isWaitingForPlayerInput();
     }
-    public boolean isMultiplayer() { return networkManager.isMultiplayer(); }
-    public PlayerMode getPlayerMode() { return networkManager.getPlayerMode(); }
+    public boolean isMultiplayer() { return networkCoordinator.getNetworkManager().isMultiplayer(); }
+    public PlayerMode getPlayerMode() { return networkCoordinator.getNetworkManager().getPlayerMode(); }
     public int getLocalPlayerIndex() { return localPlayerIndex; }
 
     public int getTotalDuplicatesOnBoard() {

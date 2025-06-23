@@ -97,6 +97,9 @@ public class MainGameController implements Initializable {
 
         uiManager.setMultiplayerComponents(multiplayerHelper, handManager, multiplayerInfoTextArea);
         actionsHandler.setupEventHandlers();
+
+        configController.setGameEngine(gameEngine);
+        configController.setUIUpdateCallback(this::updateUI);
     }
 
     private void initializeChat() {
@@ -123,32 +126,26 @@ public class MainGameController implements Initializable {
 
     @FXML private void setEasyMode() {
         configController.setEasyMode();
-        refreshGameWithNewConfig();
     }
 
     @FXML private void setNormalMode() {
         configController.setNormalMode();
-        refreshGameWithNewConfig();
     }
 
     @FXML private void setHardMode() {
         configController.setHardMode();
-        refreshGameWithNewConfig();
     }
 
     @FXML private void adjustMaxCycles() {
         configController.adjustMaxCycles();
-        refreshGameWithNewConfig();
     }
 
     @FXML private void adjustMissionsToWin() {
         configController.adjustMissionsToWin();
-        refreshGameWithNewConfig();
     }
 
     @FXML private void adjustMaxVortexes() {
         configController.adjustMaxVortexes();
-        refreshGameWithNewConfig();
     }
 
     @FXML private void adjustServerPort() {
@@ -161,14 +158,6 @@ public class MainGameController implements Initializable {
 
     @FXML private void resetConfiguration() {
         configController.resetToDefaults();
-        refreshGameWithNewConfig();
-    }
-
-    private void refreshGameWithNewConfig() {
-        if (gameEngine != null) {
-            gameEngine.getConfigManager().refreshConfiguration(this::updateUI);
-            GameLogger.gameFlow("🔄 Game refreshed with new configuration");
-        }
     }
 
     @FXML private void sendChatMessage() {
@@ -218,6 +207,7 @@ public class MainGameController implements Initializable {
             inputHandler = actionsHandler.getInputHandler();
             multiplayerHelper = actionsHandler.getMultiplayerHelper();
             uiManager.setMultiplayerComponents(multiplayerHelper, handManager, multiplayerInfoTextArea);
+            configController.setGameEngine(gameEngine);
             updateUI();
         }
     }
@@ -228,6 +218,7 @@ public class MainGameController implements Initializable {
         multiplayerHelper = actionsHandler.getMultiplayerHelper();
         gameRunning = true;
         endTurnButton.setDisable(false);
+        configController.setGameEngine(gameEngine);
         updateUI();
     }
 

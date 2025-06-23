@@ -1,6 +1,7 @@
 package hr.algebra.theloop.controller;
 
 import hr.algebra.theloop.config.ConfigurationManager;
+import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.model.GameConfiguration;
 import hr.algebra.theloop.utils.GameLogger;
 import javafx.scene.control.Alert;
@@ -12,9 +13,19 @@ import java.util.Optional;
 public class ConfigurationController {
 
     private final ConfigurationManager configManager;
+    private GameEngine gameEngine;
+    private Runnable uiUpdateCallback;
 
     public ConfigurationController() {
         this.configManager = ConfigurationManager.getInstance();
+    }
+
+    public void setGameEngine(GameEngine gameEngine) {
+        this.gameEngine = gameEngine;
+    }
+
+    public void setUIUpdateCallback(Runnable callback) {
+        this.uiUpdateCallback = callback;
     }
 
     public void setEasyMode() {
@@ -24,8 +35,8 @@ public class ConfigurationController {
         config.setMaxVortexes(4);
         configManager.updateConfig(config);
 
-        showConfigAlert("Easy Mode Set",
-                "Cycles: 5, Missions: 3, Vortexes: 4");
+        showConfigAlert("Easy Mode Set", "Cycles: 5, Missions: 3, Vortexes: 4");
+        refreshGameWithNewConfig();
     }
 
     public void setNormalMode() {
@@ -35,8 +46,8 @@ public class ConfigurationController {
         config.setMaxVortexes(3);
         configManager.updateConfig(config);
 
-        showConfigAlert("Normal Mode Set",
-                "Cycles: 3, Missions: 4, Vortexes: 3");
+        showConfigAlert("Normal Mode Set", "Cycles: 3, Missions: 4, Vortexes: 3");
+        refreshGameWithNewConfig();
     }
 
     public void setHardMode() {
@@ -46,8 +57,8 @@ public class ConfigurationController {
         config.setMaxVortexes(2);
         configManager.updateConfig(config);
 
-        showConfigAlert("Hard Mode Set",
-                "Cycles: 2, Missions: 5, Vortexes: 2");
+        showConfigAlert("Hard Mode Set", "Cycles: 2, Missions: 5, Vortexes: 2");
+        refreshGameWithNewConfig();
     }
 
     public void adjustMaxCycles() {
@@ -63,6 +74,7 @@ public class ConfigurationController {
                 if (cycles >= 1 && cycles <= 10) {
                     configManager.setMaxCycles(cycles);
                     showConfigAlert("Max Cycles Updated", "New value: " + cycles);
+                    refreshGameWithNewConfig();
                 } else {
                     showErrorAlert("Invalid value. Please enter 1-10.");
                 }
@@ -85,6 +97,7 @@ public class ConfigurationController {
                 if (missions >= 1 && missions <= 10) {
                     configManager.setMissionsToWin(missions);
                     showConfigAlert("Missions to Win Updated", "New value: " + missions);
+                    refreshGameWithNewConfig();
                 } else {
                     showErrorAlert("Invalid value. Please enter 1-10.");
                 }
@@ -107,6 +120,7 @@ public class ConfigurationController {
                 if (vortexes >= 1 && vortexes <= 10) {
                     configManager.setMaxVortexes(vortexes);
                     showConfigAlert("Max Vortexes Updated", "New value: " + vortexes);
+                    refreshGameWithNewConfig();
                 } else {
                     showErrorAlert("Invalid value. Please enter 1-10.");
                 }
@@ -179,6 +193,17 @@ public class ConfigurationController {
             GameConfiguration defaultConfig = new GameConfiguration();
             configManager.updateConfig(defaultConfig);
             showConfigAlert("Configuration Reset", "All settings restored to defaults.");
+            refreshGameWithNewConfig();
+        }
+    }
+
+    private void refreshGameWithNewConfig() {
+        if (gameEngine != null) {
+            gameEngine.getConfigManager().refreshConfiguration(uiUpdateCallback);
+            GameLogger.gameFlow("🔄 Game refreshed with new configuration");
+        }
+        if (uiUpdateCallback != null) {
+            uiUpdateCallback.run();
         }
     }
 

@@ -1,5 +1,6 @@
 package hr.algebra.theloop.engine;
 
+import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.missions.EnergySurgeMission;
 import hr.algebra.theloop.missions.HuntDuplicatesMission;
 import hr.algebra.theloop.missions.Mission;
@@ -70,8 +71,25 @@ public class MissionManager {
         }
     }
 
+    public void checkGameEndConditions(GameState gameState, ConfigurationManager configManager) {
+        if (gameState.getTotalMissionsCompleted() >= configManager.getMissionsToWin()) {
+            gameState.endGame(GameResult.VICTORY);
+            GameLogger.success("🎉 VICTORY! Completed " + configManager.getMissionsToWin() + " missions!");
+        } else if (gameState.getVortexCount() >= configManager.getMaxVortexes()) {
+            gameState.endGame(GameResult.DEFEAT_VORTEXES);
+            GameLogger.error("💀 DEFEAT! " + configManager.getMaxVortexes() + " vortexes opened!");
+        } else if (gameState.getCurrentCycle() > configManager.getMaxCycles()) {
+            gameState.endGame(GameResult.DEFEAT_CYCLES);
+            GameLogger.error("💀 DEFEAT! Dr. Foo completed " + configManager.getMaxCycles() + " cycles!");
+        }
+    }
+
     public boolean needsMissionSync(GameState gameState) {
         return gameState.getActiveMissions().isEmpty() && gameState.getCompletedMissions().isEmpty();
+    }
+
+    public boolean shouldRequestSync(GameState gameState) {
+        return needsMissionSync(gameState);
     }
 
     private Mission createRandomMission(Era era) {
