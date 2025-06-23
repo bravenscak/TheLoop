@@ -14,16 +14,12 @@ public class PlayerActionManager {
 
     private final GameState gameState;
     private final MissionManager missionManager;
-    private final CardAcquisitionManager cardAcquisitionManager;
     private Runnable uiUpdateCallback;
-    private PlayerMode playerMode = PlayerMode.SINGLE_PLAYER;
-    private int localPlayerIndex = 0;
 
     public PlayerActionManager(GameState gameState, MissionManager missionManager,
                                CardAcquisitionManager cardAcquisitionManager) {
         this.gameState = gameState;
         this.missionManager = missionManager;
-        this.cardAcquisitionManager = cardAcquisitionManager;
     }
 
     public void setUIUpdateCallback(Runnable callback) {
@@ -31,8 +27,6 @@ public class PlayerActionManager {
     }
 
     public void setPlayerMode(PlayerMode mode, int localIndex) {
-        this.playerMode = mode;
-        this.localPlayerIndex = localIndex;
     }
 
     public boolean playCard(Player player, int cardIndex, Era targetEra) {
@@ -40,16 +34,13 @@ public class PlayerActionManager {
             return false;
         }
 
-        if (!isLocalPlayer(player)) {
+        if (!isValidCardIndex(player, cardIndex)) {
             return false;
         }
 
         List<ArtifactCard> hand = player.getHand();
-        if (cardIndex < 0 || cardIndex >= hand.size()) {
-            return false;
-        }
-
         ArtifactCard card = hand.get(cardIndex);
+
         if (!card.canExecute(gameState, player)) {
             return false;
         }
@@ -79,43 +70,41 @@ public class PlayerActionManager {
             return false;
         }
 
-        if (!isLocalPlayer(player)) {
-            return false;
-        }
-
         Era currentEra = player.getCurrentEra();
         if (!currentEra.isAdjacentTo(targetEra)) {
             return false;
         }
 
         if (player.canUseFreeBattery()) {
-            player.useFreeBattery();
-            player.moveToEra(targetEra);
-            GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (battery)");
-
-            if (uiUpdateCallback != null) {
-                Platform.runLater(uiUpdateCallback);
-            }
-
-            missionManager.checkAllMissions(gameState, player, "Movement");
-            return true;
+            return executeFreeBatteryMovement(player, targetEra);
         }
 
+        return executeEnergyMovement(player, currentEra, targetEra);
+    }
+
+    private boolean executeFreeBatteryMovement(Player player, Era targetEra) {
+        player.useFreeBattery();
+        player.moveToEra(targetEra);
+        GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (battery)");
+
+        triggerUIUpdate();
+        missionManager.checkAllMissions(gameState, player, "Movement");
+        return true;
+    }
+
+    private boolean executeEnergyMovement(Player player, Era currentEra, Era targetEra) {
         int availableEnergy = gameState.getEnergy(currentEra);
-        if (availableEnergy > 0) {
-            gameState.removeEnergy(currentEra, 1);
-            player.moveToEra(targetEra);
-            GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (1 energy)");
-
-            if (uiUpdateCallback != null) {
-                Platform.runLater(uiUpdateCallback);
-            }
-
-            missionManager.checkAllMissions(gameState, player, "Movement");
-            return true;
+        if (availableEnergy <= 0) {
+            return false;
         }
 
-        return false;
+        gameState.removeEnergy(currentEra, 1);
+        player.moveToEra(targetEra);
+        GameLogger.playerAction(player.getName(), "Moved to " + targetEra.getDisplayName() + " (1 energy)");
+
+        triggerUIUpdate();
+        missionManager.checkAllMissions(gameState, player, "Movement");
+        return true;
     }
 
     public boolean spawnDuplicate(Era era, int duplicatesInBag) {
@@ -127,11 +116,15 @@ public class PlayerActionManager {
         return true;
     }
 
-    private boolean isLocalPlayer(Player player) {
-        if (playerMode == PlayerMode.SINGLE_PLAYER) {
-            return true;
+    private boolean isValidCardIndex(Player player, int cardIndex) {
+        List<ArtifactCard> hand = player.getHand();
+        return cardIndex >= 0 && cardIndex < hand.size();
+    }
+
+    private void triggerUIUpdate() {
+        if (uiUpdateCallback != null) {
+            Platform.runLater(uiUpdateCallback);
         }
-        return true;
     }
 
     private int getTotalDuplicates() {

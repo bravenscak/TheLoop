@@ -1,5 +1,6 @@
 package hr.algebra.theloop.utils;
 
+import hr.algebra.theloop.exception.XmlConfigurationException;
 import hr.algebra.theloop.model.GameConfiguration;
 import org.w3c.dom.*;
 import org.xml.sax.ErrorHandler;
@@ -28,7 +29,7 @@ public class XmlUtils {
     private static final String GAME_CONFIGURATION = "GameConfiguration";
     public static final String XML_CONFIG_FILE = "xml/gameConfig.xml";
 
-    public static void saveGameConfiguration(GameConfiguration config) {
+    public static void saveGameConfiguration(GameConfiguration config) throws XmlConfigurationException {
         try {
             ensureXmlDirectoryExists();
             Document document = createDocument(GAME_CONFIGURATION);
@@ -37,11 +38,11 @@ public class XmlUtils {
             GameLogger.success("Game configuration saved to " + XML_CONFIG_FILE);
         } catch (ParserConfigurationException | TransformerException | IOException e) {
             GameLogger.error("Failed to save configuration: " + e.getMessage());
-            throw new RuntimeException("Error saving XML configuration", e);
+            throw new XmlConfigurationException("Error saving XML configuration", e);
         }
     }
 
-    public static GameConfiguration loadGameConfiguration() {
+    public static GameConfiguration loadGameConfiguration() throws XmlConfigurationException {
         if (!Files.exists(Path.of(XML_CONFIG_FILE))) {
             GameLogger.warning("Config file not found, creating default: " + XML_CONFIG_FILE);
             createDefaultConfiguration();
@@ -192,7 +193,7 @@ public class XmlUtils {
         return defaultValue;
     }
 
-    private static void createDefaultConfiguration() {
+    private static void createDefaultConfiguration() throws XmlConfigurationException {
         GameConfiguration defaultConfig = createDefaultGameConfiguration();
         saveGameConfiguration(defaultConfig);
     }

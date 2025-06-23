@@ -1,6 +1,7 @@
 package hr.algebra.theloop;
 
 import hr.algebra.theloop.model.PlayerMode;
+import hr.algebra.theloop.utils.GameLogger;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -31,7 +32,7 @@ public class TheLoopApplication extends Application {
             primaryStage.show();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            GameLogger.error("Failed to start application: " + e.getMessage());
         }
     }
 
@@ -41,10 +42,10 @@ public class TheLoopApplication extends Application {
         if (args.length > 0) {
             try {
                 playerMode = PlayerMode.valueOf(args[0].toUpperCase());
-                System.out.println("🎮 Starting in " + playerMode + " mode");
+                GameLogger.gameFlow("🎮 Starting in " + playerMode + " mode");
             } catch (IllegalArgumentException e) {
-                System.err.println("❌ Invalid player mode: " + args[0]);
-                System.err.println("Valid options: SINGLE_PLAYER, PLAYER_ONE, PLAYER_TWO");
+                GameLogger.error("❌ Invalid player mode: " + args[0]);
+                GameLogger.error("Valid options: SINGLE_PLAYER, PLAYER_ONE, PLAYER_TWO");
                 System.exit(1);
             }
         }

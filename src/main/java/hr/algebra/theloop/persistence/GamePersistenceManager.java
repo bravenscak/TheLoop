@@ -118,19 +118,21 @@ public class GamePersistenceManager {
                 return new ArrayList<>();
             }
 
-            return Files.list(savesDir)
-                    .filter(path -> path.toString().endsWith(FILE_EXTENSION))
-                    .map(path -> path.getFileName().toString())
-                    .sorted((a, b) -> {
-                        boolean aIsManual = a.startsWith(MANUAL_SAVE_PREFIX);
-                        boolean bIsManual = b.startsWith(MANUAL_SAVE_PREFIX);
+            try (var paths = Files.list(savesDir)) {
+                return paths
+                        .filter(path -> path.toString().endsWith(FILE_EXTENSION))
+                        .map(path -> path.getFileName().toString())
+                        .sorted((a, b) -> {
+                            boolean aIsManual = a.startsWith(MANUAL_SAVE_PREFIX);
+                            boolean bIsManual = b.startsWith(MANUAL_SAVE_PREFIX);
 
-                        if (aIsManual && !bIsManual) return -1;
-                        if (!aIsManual && bIsManual) return 1;
+                            if (aIsManual && !bIsManual) return -1;
+                            if (!aIsManual && bIsManual) return 1;
 
-                        return b.compareTo(a);
-                    })
-                    .toList();
+                            return b.compareTo(a);
+                        })
+                        .toList();
+            }
 
         } catch (IOException e) {
             GameLogger.error("Failed to list save files: " + e.getMessage());

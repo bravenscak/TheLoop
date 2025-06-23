@@ -9,6 +9,10 @@ import java.util.Random;
 
 public class MissionFactory {
 
+    private static final String STABILIZE_TYPE = "STABILIZE";
+    private static final String ENERGY_TYPE = "ENERGY";
+    private static final String HUNT_TYPE = "HUNT";
+
     private final Random random;
 
     public MissionFactory(Random random) {
@@ -47,20 +51,20 @@ public class MissionFactory {
     public Mission createNewMission(GameState gameState, List<String> existingTypes) {
         List<String> availableTypes = new ArrayList<>();
 
-        if (!existingTypes.contains("STABILIZE") && hasErasWithRifts(gameState)) {
-            availableTypes.add("STABILIZE");
+        if (!existingTypes.contains(STABILIZE_TYPE) && hasErasWithRifts(gameState)) {
+            availableTypes.add(STABILIZE_TYPE);
         }
-        if (!existingTypes.contains("ENERGY") && hasErasForEnergy(gameState)) {
-            availableTypes.add("ENERGY");
+        if (!existingTypes.contains(ENERGY_TYPE) && hasErasForEnergy(gameState)) {
+            availableTypes.add(ENERGY_TYPE);
         }
-        if (!existingTypes.contains("HUNT")) {
-            availableTypes.add("HUNT");
+        if (!existingTypes.contains(HUNT_TYPE)) {
+            availableTypes.add(HUNT_TYPE);
         }
 
         if (availableTypes.isEmpty()) {
-            if (hasErasWithRifts(gameState)) availableTypes.add("STABILIZE");
-            if (hasErasForEnergy(gameState)) availableTypes.add("ENERGY");
-            availableTypes.add("HUNT");
+            if (hasErasWithRifts(gameState)) availableTypes.add(STABILIZE_TYPE);
+            if (hasErasForEnergy(gameState)) availableTypes.add(ENERGY_TYPE);
+            availableTypes.add(HUNT_TYPE);
         }
 
         if (availableTypes.isEmpty()) return null;
@@ -68,9 +72,9 @@ public class MissionFactory {
         String chosenType = availableTypes.get(random.nextInt(availableTypes.size()));
 
         return switch (chosenType) {
-            case "STABILIZE" -> createStabilizeMissionForSpawn(gameState);
-            case "ENERGY" -> createEnergyMissionForSpawn(gameState);
-            case "HUNT" -> new HuntDuplicatesMission();
+            case STABILIZE_TYPE -> createStabilizeMissionForSpawn(gameState);
+            case ENERGY_TYPE -> createEnergyMissionForSpawn(gameState);
+            case HUNT_TYPE -> new HuntDuplicatesMission();
             default -> null;
         };
     }

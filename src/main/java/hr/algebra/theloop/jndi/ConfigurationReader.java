@@ -1,5 +1,7 @@
 package hr.algebra.theloop.jndi;
 
+import hr.algebra.theloop.utils.GameLogger;
+
 import javax.naming.NamingException;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,7 +26,7 @@ public class ConfigurationReader {
             jndiStore.put("connection.timeout", "5000");
         } catch (Exception e) {
             jndiEnabled = false;
-            System.err.println("Failed to initialize JNDI configuration: " + e.getMessage());
+            GameLogger.error("Failed to initialize JNDI configuration: " + e.getMessage());
         }
     }
 
@@ -92,6 +94,7 @@ public class ConfigurationReader {
         try {
             rebind(key.getKey(), value);
         } catch (Exception e) {
+            GameLogger.warning("Failed to update configuration for key: " + key.getKey());
         }
     }
 

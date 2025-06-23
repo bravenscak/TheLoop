@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <GameConfiguration>
     <GameSettings>
-        <maxCycles>5</maxCycles>
-        <missionsToWin>3</missionsToWin>
-        <maxVortexes>4</maxVortexes>
+        <maxCycles>3</maxCycles>
+        <missionsToWin>4</missionsToWin>
+        <maxVortexes>3</maxVortexes>
         <maxHandSize>3</maxHandSize>
     </GameSettings>
     <NetworkSettings>

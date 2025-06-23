@@ -7,7 +7,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 public class PlayerDeckManager implements Serializable {
@@ -59,13 +58,13 @@ public class PlayerDeckManager implements Serializable {
     public List<ArtifactCard> getReadyCards() {
         return hand.stream()
                 .filter(card -> !card.isExhausted())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<ArtifactCard> getExhaustedCards() {
         return hand.stream()
                 .filter(ArtifactCard::isExhausted)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public boolean hasPlayableCards(GameState gameState, Player player) {
@@ -76,7 +75,7 @@ public class PlayerDeckManager implements Serializable {
     public List<ArtifactCard> getPlayableCards(GameState gameState, Player player) {
         return hand.stream()
                 .filter(card -> !card.isExhausted() && card.canExecute(gameState, player))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public int getHandSize() { return hand.size(); }

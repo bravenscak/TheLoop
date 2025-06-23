@@ -4,7 +4,6 @@ import hr.algebra.theloop.cards.ArtifactCard;
 import hr.algebra.theloop.cards.CardFactory;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
-import hr.algebra.theloop.model.Player;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +12,7 @@ public class CardAcquisitionManager {
 
     private final Random random;
     private final Map<Era, List<ArtifactCard>> availableCards;
-    private static final int maxCardsPerEra = 2;
+    private static final int MAX_CARDS_PER_ERA = 2;
 
     public CardAcquisitionManager(Random random) {
         this.random = random;
@@ -36,7 +35,7 @@ public class CardAcquisitionManager {
     public void addRandomCardsToEras(GameState gameState, int cardsPerTurn) {
         List<Era> availableEras = new ArrayList<>();
         for (Era era : Era.values()) {
-            if (!gameState.hasVortex(era) && availableCards.get(era).size() < maxCardsPerEra) {
+            if (!gameState.hasVortex(era) && availableCards.get(era).size() < MAX_CARDS_PER_ERA) {
                 availableEras.add(era);
             }
         }
@@ -51,7 +50,7 @@ public class CardAcquisitionManager {
 
             availableCards.get(randomEra).add(newCard);
 
-            if (availableCards.get(randomEra).size() >= maxCardsPerEra) {
+            if (availableCards.get(randomEra).size() >= MAX_CARDS_PER_ERA) {
                 availableEras.remove(randomEra);
             }
         }
@@ -78,7 +77,7 @@ public class CardAcquisitionManager {
     }
 
     public void addCardToEra(Era era, ArtifactCard card) {
-        if (availableCards.get(era).size() < maxCardsPerEra) {
+        if (availableCards.get(era).size() < MAX_CARDS_PER_ERA) {
             availableCards.get(era).add(card);
         }
     }

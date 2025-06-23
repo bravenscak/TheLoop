@@ -2,7 +2,6 @@ package hr.algebra.theloop.engine;
 
 import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
-import hr.algebra.theloop.model.PlayerMode;
 import hr.algebra.theloop.networking.NetworkManager;
 import hr.algebra.theloop.utils.GameLogger;
 
@@ -73,14 +72,14 @@ public class TurnManager {
             setWaitingForPlayerInput(true);
 
             if (localPlayerIndex == 0) {
-                new Thread(() -> {
+                Thread.ofVirtual().start(() -> {
                     try {
                         Thread.sleep(2000);
                         GameLogger.gameFlow("🎮 Player 1: Ready for mission broadcast");
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
-                }).start();
+                });
             }
         } else {
             startPlayerTurn();

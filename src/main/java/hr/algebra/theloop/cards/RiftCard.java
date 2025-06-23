@@ -7,6 +7,8 @@ import hr.algebra.theloop.utils.GameLogger;
 
 public class RiftCard extends ArtifactCard {
 
+    private static final String REMOVE_ACTION = "Remove";
+
     public enum RiftEffect {
         REMOVE_FROM_CURRENT,
         REMOVE_FROM_ADJACENT,
@@ -17,7 +19,7 @@ public class RiftCard extends ArtifactCard {
     private final RiftEffect effect;
 
     public RiftCard(String name, int riftAmount) {
-        super(name, "Remove " + riftAmount + " rifts from current era", CardDimension.STRIPE);
+        super(name, REMOVE_ACTION + " " + riftAmount + " rifts from current era", CardDimension.STRIPE);
         this.riftAmount = riftAmount;
         this.effect = RiftEffect.REMOVE_FROM_CURRENT;
     }
@@ -30,9 +32,9 @@ public class RiftCard extends ArtifactCard {
 
     private static String generateDescription(int amount, RiftEffect effect) {
         return switch (effect) {
-            case REMOVE_FROM_CURRENT -> "Remove " + amount + " rifts from current era";
-            case REMOVE_FROM_ADJACENT -> "Remove " + amount + " rifts from adjacent eras";
-            case REMOVE_FROM_DR_FOO -> "Remove " + amount + " rifts from Dr. Foo's era";
+            case REMOVE_FROM_CURRENT -> REMOVE_ACTION + " " + amount + " rifts from current era";
+            case REMOVE_FROM_ADJACENT -> REMOVE_ACTION + " " + amount + " rifts from adjacent eras";
+            case REMOVE_FROM_DR_FOO -> REMOVE_ACTION + " " + amount + " rifts from Dr. Foo's era";
         };
     }
 
@@ -97,5 +99,20 @@ public class RiftCard extends ArtifactCard {
 
     public static RiftCard createDrFooDisruptor() {
         return new RiftCard("Dr. Foo Disruptor", 2, RiftEffect.REMOVE_FROM_DR_FOO);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!super.equals(obj)) return false;
+        if (getClass() != obj.getClass()) return false;
+
+        RiftCard that = (RiftCard) obj;
+        return riftAmount == that.riftAmount && effect == that.effect;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(super.hashCode(), riftAmount, effect);
     }
 }

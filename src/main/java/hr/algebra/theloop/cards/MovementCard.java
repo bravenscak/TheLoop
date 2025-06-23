@@ -5,6 +5,8 @@ import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.utils.GameLogger;
 
+import java.util.Arrays;
+
 public class MovementCard extends ArtifactCard {
 
     public enum MovementEffect {
@@ -13,18 +15,15 @@ public class MovementCard extends ArtifactCard {
         MOVE_AND_ADD_ENERGY
     }
 
-    private final int moveDistance;
     private final MovementEffect effect;
 
     public MovementCard(String name, int moveDistance) {
         super(name, "Move up to " + moveDistance + " era(s) - click target era", CardDimension.SPIRAL);
-        this.moveDistance = moveDistance;
         this.effect = MovementEffect.MOVE_ADJACENT;
     }
 
     public MovementCard(String name, MovementEffect effect) {
         super(name, generateDescription(effect), CardDimension.SPIRAL);
-        this.moveDistance = effect == MovementEffect.MOVE_TWO_ERAS ? 2 : 1;
         this.effect = effect;
     }
 
@@ -80,7 +79,7 @@ public class MovementCard extends ArtifactCard {
             case MOVE_ADJACENT, MOVE_AND_ADD_ENERGY -> new Era[]{currentEra.getNext(), currentEra.getPrevious()};
             case MOVE_TWO_ERAS -> {
                 Era[] allEras = Era.values();
-                yield java.util.Arrays.stream(allEras)
+                yield Arrays.stream(allEras)
                         .filter(era -> currentEra.distanceTo(era) <= 2 && !era.equals(currentEra))
                         .toArray(Era[]::new);
             }
@@ -97,5 +96,20 @@ public class MovementCard extends ArtifactCard {
 
     public static MovementCard createEnergeticStep() {
         return new MovementCard("Energetic Step", MovementEffect.MOVE_AND_ADD_ENERGY);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!super.equals(obj)) return false;
+        if (getClass() != obj.getClass()) return false;
+
+        MovementCard that = (MovementCard) obj;
+        return effect == that.effect;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(super.hashCode(), effect);
     }
 }

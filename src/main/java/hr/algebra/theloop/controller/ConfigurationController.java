@@ -127,7 +127,18 @@ public class ConfigurationController {
     public void showCurrentConfiguration() {
         GameConfiguration config = configManager.getConfig();
 
-        String configText = String.format("🎮 GAME SETTINGS:\nMax Cycles: %d\nMissions to Win: %d\nMax Vortexes: %d\n\n🌐 NETWORK SETTINGS:\nServer Port: %d\nChat Port: %d\nConnection Timeout: %d ms\n\n👤 PLAYER SETTINGS:\nStarting Era: %s\nStarting Energy: %d\nFree Battery Uses: %d",
+        String configText = String.format("🎮 GAME SETTINGS:%n" +
+                        "Max Cycles: %d%n" +
+                        "Missions to Win: %d%n" +
+                        "Max Vortexes: %d%n%n" +
+                        "🌐 NETWORK SETTINGS:%n" +
+                        "Server Port: %d%n" +
+                        "Chat Port: %d%n" +
+                        "Connection Timeout: %d ms%n%n" +
+                        "👤 PLAYER SETTINGS:%n" +
+                        "Starting Era: %s%n" +
+                        "Starting Energy: %d%n" +
+                        "Free Battery Uses: %d",
                 config.getMaxCycles(), config.getMissionsToWin(), config.getMaxVortexes(),
                 config.getServerPort(), config.getChatPort(), config.getConnectionTimeout(),
                 config.getStartingEra(), config.getStartingEnergy(), config.getFreeBatteryUses()

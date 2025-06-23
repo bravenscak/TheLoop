@@ -7,7 +7,6 @@ import hr.algebra.theloop.model.Player;
 public class StabilizeEraMission extends Mission {
 
     private int riftsRemovedByPlayer = 0;
-    private int initialRiftCount = 0;
     private boolean playerHasWorked = false;
 
     public StabilizeEraMission(Era assignedEra) {
@@ -18,7 +17,7 @@ public class StabilizeEraMission extends Mission {
     }
 
     public void setInitialRiftCount(int initialCount) {
-        this.initialRiftCount = initialCount;
+        // Method kept for API compatibility, but no longer stores the value
     }
 
     @Override
@@ -32,9 +31,8 @@ public class StabilizeEraMission extends Mission {
         }
 
         riftsRemovedByPlayer++;
-        playerHasWorked = true;
 
-        if (gameState.getRifts(assignedEra) == 0 && playerHasWorked && riftsRemovedByPlayer > 0) {
+        if (gameState.getRifts(assignedEra) == 0 && riftsRemovedByPlayer > 0) {
             completed = true;
             currentProgress = 1;
             return true;
@@ -60,5 +58,21 @@ public class StabilizeEraMission extends Mission {
                 name, currentProgress, requiredProgress,
                 assignedEra != null ? assignedEra.getDisplayName() : "Any Era",
                 workStatus);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!super.equals(obj)) return false;
+        if (getClass() != obj.getClass()) return false;
+
+        StabilizeEraMission that = (StabilizeEraMission) obj;
+        return riftsRemovedByPlayer == that.riftsRemovedByPlayer &&
+                playerHasWorked == that.playerHasWorked;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(super.hashCode(), riftsRemovedByPlayer, playerHasWorked);
     }
 }

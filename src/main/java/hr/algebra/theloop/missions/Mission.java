@@ -17,7 +17,7 @@ public abstract class Mission implements Serializable {
     protected int requiredProgress;
     protected boolean completed;
 
-    public Mission(String name, String description, Era assignedEra, int requiredProgress) {
+    protected Mission(String name, String description, Era assignedEra, int requiredProgress) {
         this.name = name;
         this.description = description;
         this.assignedEra = assignedEra;

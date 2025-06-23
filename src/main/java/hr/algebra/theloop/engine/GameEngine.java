@@ -9,7 +9,6 @@ import java.util.Random;
 
 public class GameEngine {
     private static final int MAX_DUPLICATES_IN_BAG = 28;
-
     private static final String TIME_AGENT_BRUNO = "Time Agent Bruno";
     private static final String TIME_AGENT_ALICE = "Time Agent Alice";
 
@@ -61,10 +60,18 @@ public class GameEngine {
     }
 
     public void startGame() {
+        validatePlayersSetup();
+        initializeGameComponents();
+        setupMultiplayerMode();
+    }
+
+    private void validatePlayersSetup() {
         if (playerManager.isEmpty()) {
             throw new IllegalStateException("No players added!");
         }
+    }
 
+    private void initializeGameComponents() {
         cardAcquisitionManager.initializeAvailableCards(gameState);
 
         if (networkCoordinator.shouldBroadcast()) {
@@ -73,15 +80,19 @@ public class GameEngine {
         }
 
         playerManager.setupInitialPlayer();
+    }
+
+    private void setupMultiplayerMode() {
         turnManager.setupMultiplayerMode(networkCoordinator.getNetworkManager(), localPlayerIndex);
 
-        networkCoordinator.scheduleInitialBroadcast(() -> {
-            networkCoordinator.broadcastCompleteGameState(gameState, playerManager, "Missions Initialized", "System");
-        });
+        networkCoordinator.scheduleInitialBroadcast(() ->
+                networkCoordinator.broadcastCompleteGameState(gameState, playerManager, "Missions Initialized", "System")
+        );
     }
 
     public void processTurn() {
         if (gameState.isGameOver()) return;
+
         turnManager.processMultiplayerTurn(playerManager, gameState, drFooAI, cardAcquisitionManager,
                 networkCoordinator.getNetworkManager(), localPlayerIndex);
         networkCoordinator.broadcastGameState(gameState, playerManager, "Dr. Foo Turn", "Dr. Foo");
@@ -119,19 +130,9 @@ public class GameEngine {
         boolean success = playerActionManager.playCard(player, cardIndex, targetEra);
 
         if (success) {
-            if (missionManager.shouldRequestSync(gameState)) {
-                GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
-                networkCoordinator.requestMissionSync(getLocalPlayer(), "Need mission sync for card play");
-                return success;
-            }
-
-            missionManager.checkGameEndConditions(gameState, configManager);
-
-            if (networkCoordinator.shouldBroadcast()) {
-                networkCoordinator.broadcastGameState(gameState, playerManager, "Played card", player.getName());
-            } else {
-                networkCoordinator.requestMissionSync(getLocalPlayer(), "Card played by " + player.getName());
-            }
+            handleMissionSync();
+            checkGameEndConditions();
+            broadcastCardAction(player);
         }
 
         return success;
@@ -141,31 +142,57 @@ public class GameEngine {
         boolean success = playerActionManager.movePlayer(player, targetEra);
 
         if (success) {
-            if (missionManager.shouldRequestSync(gameState)) {
-                GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
-                networkCoordinator.requestMissionSync(getLocalPlayer(), "Need mission sync for movement");
-                return success;
-            }
-
-            missionManager.checkGameEndConditions(gameState, configManager);
-
-            if (networkCoordinator.shouldBroadcast()) {
-                networkCoordinator.broadcastGameState(gameState, playerManager, "Moved to " + targetEra.getDisplayName(), player.getName());
-            } else {
-                networkCoordinator.requestMissionSync(getLocalPlayer(), "Movement by " + player.getName());
-            }
+            handleMissionSync();
+            checkGameEndConditions();
+            broadcastMovementAction(player, targetEra);
         }
 
         return success;
     }
 
+    private void handleMissionSync() {
+        if (missionManager.shouldRequestSync(gameState)) {
+            GameLogger.warning("🎮 Player 2: No missions available, requesting sync");
+            networkCoordinator.requestMissionSync(getLocalPlayer(), "Need mission sync");
+        }
+    }
+
+    private void checkGameEndConditions() {
+        missionManager.checkGameEndConditions(gameState, configManager);
+    }
+
+    private void broadcastCardAction(Player player) {
+        if (networkCoordinator.shouldBroadcast()) {
+            networkCoordinator.broadcastGameState(gameState, playerManager, "Played card", player.getName());
+        } else {
+            networkCoordinator.requestMissionSync(getLocalPlayer(), "Card played by " + player.getName());
+        }
+    }
+
+    private void broadcastMovementAction(Player player, Era targetEra) {
+        if (networkCoordinator.shouldBroadcast()) {
+            networkCoordinator.broadcastGameState(gameState, playerManager, "Moved to " + targetEra.getDisplayName(), player.getName());
+        } else {
+            networkCoordinator.requestMissionSync(getLocalPlayer(), "Movement by " + player.getName());
+        }
+    }
+
     public void restoreFromGameState(GameState loadedState) {
+        validateLoadedState(loadedState);
+
+        this.gameState = loadedState;
+        restorePlayerStates(loadedState);
+        configureTurnManager();
+        recalculateDuplicates();
+    }
+
+    private void validateLoadedState(GameState loadedState) {
         if (loadedState == null) {
             throw new IllegalArgumentException("Cannot restore from null GameState");
         }
+    }
 
-        this.gameState = loadedState;
-
+    private void restorePlayerStates(GameState loadedState) {
         if (loadedState.hasPlayerStates()) {
             playerManager.restorePlayersFromStates(
                     loadedState.getPlayerStates(),
@@ -174,13 +201,17 @@ public class GameEngine {
         } else if (playerManager.isEmpty()) {
             playerManager.addPlayer(TIME_AGENT_BRUNO, loadedState.getDrFooPosition().getPrevious());
         }
+    }
 
+    private void configureTurnManager() {
         if (isMultiplayer()) {
             turnManager.setWaitingForPlayerInput(true);
         } else {
-            turnManager.setWaitingForPlayerInput(!loadedState.isGameOver());
+            turnManager.setWaitingForPlayerInput(!gameState.isGameOver());
         }
+    }
 
+    private void recalculateDuplicates() {
         this.duplicatesInBag = gameState.recalculateDuplicatesInBag();
     }
 
@@ -207,16 +238,20 @@ public class GameEngine {
     }
 
     public Player getCurrentPlayer() { return playerManager.getCurrentPlayer(); }
+
     public Player getLocalPlayer() {
         if (playerManager.getPlayers().size() > localPlayerIndex) {
             return playerManager.getPlayers().get(localPlayerIndex);
         }
         return getCurrentPlayer();
     }
+
     public boolean isGameOver() { return gameState.isGameOver(); }
+
     public boolean isWaitingForPlayerInput() {
         return isMultiplayer() ? !gameState.isGameOver() : turnManager.isWaitingForPlayerInput();
     }
+
     public boolean isMultiplayer() { return networkCoordinator.getNetworkManager().isMultiplayer(); }
     public PlayerMode getPlayerMode() { return networkCoordinator.getNetworkManager().getPlayerMode(); }
     public int getLocalPlayerIndex() { return localPlayerIndex; }

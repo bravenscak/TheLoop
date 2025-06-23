@@ -34,29 +34,36 @@ public class GameServer implements Runnable {
         }
 
         running = true;
+        startServerLoop();
+    }
 
+    private void startServerLoop() {
         try (ServerSocket server = new ServerSocket(port)) {
             this.serverSocket = server;
             GameLogger.gameFlow("Game server listening on port: " + port + " (Mode: " + playerMode + ")");
 
             while (running && !Thread.currentThread().isInterrupted()) {
-                try {
-                    Socket clientSocket = serverSocket.accept();
-                    GameLogger.gameFlow("Player connected from: " + clientSocket.getRemoteSocketAddress());
-
-                    Thread clientHandler = new Thread(() -> processClient(clientSocket));
-                    clientHandler.setDaemon(true);
-                    clientHandler.start();
-
-                } catch (IOException e) {
-                    if (running) {
-                        GameLogger.error("Error accepting client connection: " + e.getMessage());
-                    }
-                }
+                acceptClientConnections();
             }
 
         } catch (IOException e) {
             GameLogger.error("Failed to start game server on port " + port + ": " + e.getMessage());
+        }
+    }
+
+    private void acceptClientConnections() {
+        try {
+            Socket clientSocket = serverSocket.accept();
+            GameLogger.gameFlow("Player connected from: " + clientSocket.getRemoteSocketAddress());
+
+            Thread clientHandler = new Thread(() -> processClient(clientSocket));
+            clientHandler.setDaemon(true);
+            clientHandler.start();
+
+        } catch (IOException e) {
+            if (running) {
+                GameLogger.error("Error accepting client connection: " + e.getMessage());
+            }
         }
     }
 

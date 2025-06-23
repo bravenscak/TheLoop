@@ -79,7 +79,7 @@ public class NetworkCoordinator {
 
     public void scheduleInitialBroadcast(Runnable broadcastAction) {
         if (isMultiplayerHost()) {
-            new Thread(() -> {
+            Thread.ofVirtual().start(() -> {
                 try {
                     Thread.sleep(2000);
                     broadcastAction.run();
@@ -87,7 +87,7 @@ public class NetworkCoordinator {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
-            }).start();
+            });
         }
     }
 

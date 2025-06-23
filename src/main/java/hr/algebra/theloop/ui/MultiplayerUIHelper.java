@@ -49,24 +49,30 @@ public class MultiplayerUIHelper {
 
     public void updateMultiplayerInfoLabel(Object multiplayerInfoControl) {
         if (!gameEngine.isMultiplayer()) {
-            if (multiplayerInfoControl instanceof Label) {
-                ((Label) multiplayerInfoControl).setVisible(false);
-            } else if (multiplayerInfoControl instanceof TextArea) {
-                ((TextArea) multiplayerInfoControl).setVisible(false);
-            }
+            hideMultiplayerInfo(multiplayerInfoControl);
             return;
         }
 
         String infoText = generateMultiplayerInfo();
 
-        if (multiplayerInfoControl instanceof Label) {
-            Label label = (Label) multiplayerInfoControl;
-            label.setText(infoText);
-            label.setVisible(true);
-        } else if (multiplayerInfoControl instanceof TextArea) {
-            TextArea textArea = (TextArea) multiplayerInfoControl;
-            textArea.setText(infoText);
-            textArea.setVisible(true);
+        switch (multiplayerInfoControl) {
+            case Label label -> {
+                label.setText(infoText);
+                label.setVisible(true);
+            }
+            case TextArea textArea -> {
+                textArea.setText(infoText);
+                textArea.setVisible(true);
+            }
+            default -> throw new IllegalArgumentException("Unsupported control type: " + multiplayerInfoControl.getClass());
+        }
+    }
+
+    private void hideMultiplayerInfo(Object multiplayerInfoControl) {
+        switch (multiplayerInfoControl) {
+            case Label label -> label.setVisible(false);
+            case TextArea textArea -> textArea.setVisible(false);
+            default -> throw new IllegalArgumentException("Unsupported control type: " + multiplayerInfoControl.getClass());
         }
     }
 

@@ -4,24 +4,17 @@ import hr.algebra.theloop.model.GameConfiguration;
 import hr.algebra.theloop.utils.XmlUtils;
 import hr.algebra.theloop.utils.GameLogger;
 
-public class ConfigurationManager {
+public enum ConfigurationManager {
+    INSTANCE;
 
-    private static volatile ConfigurationManager instance;
     private GameConfiguration currentConfig;
 
-    private ConfigurationManager() {
+    ConfigurationManager() {
         loadConfiguration();
     }
 
     public static ConfigurationManager getInstance() {
-        if (instance == null) {
-            synchronized (ConfigurationManager.class) {
-                if (instance == null) {
-                    instance = new ConfigurationManager();
-                }
-            }
-        }
-        return instance;
+        return INSTANCE;
     }
 
     public void loadConfiguration() {

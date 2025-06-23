@@ -72,12 +72,7 @@ public class NetworkGameState implements Serializable {
         private String missionType;
 
         public static MissionData fromMission(Mission mission) {
-            String type = "HUNT"; // default
-            if (mission instanceof StabilizeEraMission) {
-                type = "STABILIZE";
-            } else if (mission instanceof EnergySurgeMission) {
-                type = "ENERGY";
-            }
+            String type = determineMissionType(mission);
 
             return new MissionData(
                     mission.getName(),
@@ -90,16 +85,28 @@ public class NetworkGameState implements Serializable {
             );
         }
 
+        private static String determineMissionType(Mission mission) {
+            if (mission instanceof StabilizeEraMission) {
+                return "STABILIZE";
+            } else if (mission instanceof EnergySurgeMission) {
+                return "ENERGY";
+            }
+            return "HUNT";
+        }
+
         public Mission toMission() {
-            Mission mission = switch (missionType) {
+            Mission mission = createMissionByType();
+            mission.setCurrentProgress(currentProgress);
+            mission.setCompleted(completed);
+            return mission;
+        }
+
+        private Mission createMissionByType() {
+            return switch (missionType) {
                 case "STABILIZE" -> new StabilizeEraMission(assignedEra);
                 case "ENERGY" -> new EnergySurgeMission(assignedEra);
                 default -> new HuntDuplicatesMission();
             };
-
-            mission.setCurrentProgress(currentProgress);
-            mission.setCompleted(completed);
-            return mission;
         }
     }
 
@@ -108,33 +115,11 @@ public class NetworkGameState implements Serializable {
         Era[] eras = Era.values();
         int eraCount = eras.length;
 
-        int[] rifts = new int[eraCount];
-        int[] energy = new int[eraCount];
-        boolean[] vortex = new boolean[eraCount];
-        int[] duplicates = new int[eraCount];
-        List<List<DuplicateInfo>> duplicateDetails = new ArrayList<>();
+        NetworkStateBuilder builder = new NetworkStateBuilder(eraCount);
 
-        for (int i = 0; i < eraCount; i++) {
-            Era era = eras[i];
-            rifts[i] = gameState.getRifts(era);
-            energy[i] = gameState.getEnergy(era);
-            vortex[i] = gameState.hasVortex(era);
-            duplicates[i] = gameState.getDuplicateCount(era);
-
-            List<DuplicateInfo> eraDetails = new ArrayList<>();
-            for (Duplicate dup : gameState.getDuplicatesAt(era)) {
-                eraDetails.add(DuplicateInfo.fromDuplicate(dup));
-            }
-            duplicateDetails.add(eraDetails);
-        }
-
-        List<MissionData> activeMissionsData = gameState.getActiveMissions().stream()
-                .map(MissionData::fromMission)
-                .toList();
-
-        List<MissionData> completedMissionsData = gameState.getCompletedMissions().stream()
-                .map(MissionData::fromMission)
-                .toList();
+        populateEraData(builder, gameState, eras);
+        List<MissionData> activeMissionsData = convertMissions(gameState.getActiveMissions());
+        List<MissionData> completedMissionsData = convertMissions(gameState.getCompletedMissions());
 
         return new NetworkGameState(
                 gameState.getTurnNumber(),
@@ -142,11 +127,11 @@ public class NetworkGameState implements Serializable {
                 gameState.getCurrentCycle(),
                 gameState.isGameOver(),
                 gameState.getGameResult(),
-                rifts,
-                energy,
-                vortex,
-                duplicates,
-                duplicateDetails,
+                builder.rifts,
+                builder.energy,
+                builder.vortex,
+                builder.duplicates,
+                builder.duplicateDetails,
                 gameState.getPlayerStates(),
                 gameState.getCurrentPlayerIndex(),
                 playerMode,
@@ -158,37 +143,87 @@ public class NetworkGameState implements Serializable {
         );
     }
 
+    private static void populateEraData(NetworkStateBuilder builder, GameState gameState, Era[] eras) {
+        for (int i = 0; i < eras.length; i++) {
+            Era era = eras[i];
+
+            builder.rifts[i] = gameState.getRifts(era);
+            builder.energy[i] = gameState.getEnergy(era);
+            builder.vortex[i] = gameState.hasVortex(era);
+            builder.duplicates[i] = gameState.getDuplicateCount(era);
+
+            List<DuplicateInfo> eraDetails = convertDuplicates(gameState.getDuplicatesAt(era));
+            builder.duplicateDetails.add(eraDetails);
+        }
+    }
+
+    private static List<DuplicateInfo> convertDuplicates(List<Duplicate> duplicates) {
+        List<DuplicateInfo> eraDetails = new ArrayList<>();
+        for (Duplicate dup : duplicates) {
+            eraDetails.add(DuplicateInfo.fromDuplicate(dup));
+        }
+        return eraDetails;
+    }
+
+    private static List<MissionData> convertMissions(List<Mission> missions) {
+        return missions.stream()
+                .map(MissionData::fromMission)
+                .toList();
+    }
+
     public void applyToGameState(GameState gameState) {
+        updateBasicGameState(gameState);
+        updateErasData(gameState);
+        updateMissions(gameState);
+        updatePlayerStates(gameState);
+    }
+
+    private void updateBasicGameState(GameState gameState) {
         gameState.setTurnNumber(turnNumber);
         gameState.setDrFooPosition(drFooPosition);
         gameState.setCurrentCycle(currentCycle);
         gameState.setGameOver(gameOver);
         gameState.setGameResult(gameResult);
         gameState.setCurrentPlayerIndex(currentPlayerIndex);
+        gameState.setTotalMissionsCompleted(totalMissionsCompleted);
+    }
 
+    private void updateErasData(GameState gameState) {
         Era[] eras = Era.values();
         for (int i = 0; i < eras.length; i++) {
             Era era = eras[i];
+            updateSingleEra(gameState, era, i);
+        }
+    }
 
-            gameState.getResources().getRifts().put(era, riftsPerEra[i]);
-            gameState.getResources().getEnergy().put(era, energyPerEra[i]);
+    private void updateSingleEra(GameState gameState, Era era, int index) {
+        gameState.getResources().getRifts().put(era, riftsPerEra[index]);
+        gameState.getResources().getEnergy().put(era, energyPerEra[index]);
 
-            if (vortexPerEra[i]) {
-                gameState.getResources().getVortexes().add(era);
-            } else {
-                gameState.getResources().getVortexes().remove(era);
-            }
+        updateVortexState(gameState, era, index);
+        updateDuplicatesForEra(gameState, era, index);
+    }
 
-            gameState.getResources().getDuplicates().get(era).clear();
+    private void updateVortexState(GameState gameState, Era era, int index) {
+        if (vortexPerEra[index]) {
+            gameState.getResources().getVortexes().add(era);
+        } else {
+            gameState.getResources().getVortexes().remove(era);
+        }
+    }
 
-            if (duplicateDetails != null && i < duplicateDetails.size()) {
-                for (DuplicateInfo dupInfo : duplicateDetails.get(i)) {
-                    Duplicate newDup = dupInfo.toDuplicate();
-                    gameState.getResources().getDuplicates().get(era).add(newDup);
-                }
+    private void updateDuplicatesForEra(GameState gameState, Era era, int index) {
+        gameState.getResources().getDuplicates().get(era).clear();
+
+        if (duplicateDetails != null && index < duplicateDetails.size()) {
+            for (DuplicateInfo dupInfo : duplicateDetails.get(index)) {
+                Duplicate newDup = dupInfo.toDuplicate();
+                gameState.getResources().getDuplicates().get(era).add(newDup);
             }
         }
+    }
 
+    private void updateMissions(GameState gameState) {
         if (activeMissions != null) {
             gameState.getActiveMissions().clear();
             for (MissionData missionData : activeMissions) {
@@ -202,11 +237,27 @@ public class NetworkGameState implements Serializable {
                 gameState.getCompletedMissions().add(missionData.toMission());
             }
         }
+    }
 
-        gameState.setTotalMissionsCompleted(totalMissionsCompleted);
-
+    private void updatePlayerStates(GameState gameState) {
         if (playerStates != null) {
             gameState.setPlayerStates(playerStates);
+        }
+    }
+
+    private static class NetworkStateBuilder {
+        final int[] rifts;
+        final int[] energy;
+        final boolean[] vortex;
+        final int[] duplicates;
+        final List<List<DuplicateInfo>> duplicateDetails;
+
+        NetworkStateBuilder(int eraCount) {
+            this.rifts = new int[eraCount];
+            this.energy = new int[eraCount];
+            this.vortex = new boolean[eraCount];
+            this.duplicates = new int[eraCount];
+            this.duplicateDetails = new ArrayList<>();
         }
     }
 }

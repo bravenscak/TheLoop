@@ -33,11 +33,21 @@ public class MainGameController implements Initializable {
     private static final String SUCCESS_HEADER = "Success!";
 
     @FXML private CircularBoardView circularBoard;
-    @FXML private CardController card1Controller, card2Controller, card3Controller;
-    @FXML private Label turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel;
-    @FXML private Label playerNameLabel, playerLocationLabel;
-    @FXML private Label completedMissionsLabel, duplicatesLabel, availableCardsLabel;
-    @FXML private Button endTurnButton, loopButton;
+    @FXML private CardController card1Controller;
+    @FXML private CardController card2Controller;
+    @FXML private CardController card3Controller;
+    @FXML private Label turnLabel;
+    @FXML private Label drFooLocationLabel;
+    @FXML private Label cycleLabel;
+    @FXML private Label missionsLabel;
+    @FXML private Label vortexLabel;
+    @FXML private Label playerNameLabel;
+    @FXML private Label playerLocationLabel;
+    @FXML private Label completedMissionsLabel;
+    @FXML private Label duplicatesLabel;
+    @FXML private Label availableCardsLabel;
+    @FXML private Button endTurnButton;
+    @FXML private Button loopButton;
     @FXML private ListView<String> activeMissionsList;
     @FXML private TextArea multiplayerInfoTextArea;
 

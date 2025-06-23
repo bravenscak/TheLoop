@@ -13,6 +13,9 @@ import java.util.ResourceBundle;
 
 public class EraController implements Initializable {
 
+    private static final String VORTEX_STYLE_CLASS = "vortex";
+    private static final String HIGH_RIFTS_STYLE_CLASS = "high-rifts";
+
     @FXML private Polygon eraShape;
     @FXML private Text eraNameText;
     @FXML private Text riftsText;
@@ -69,19 +72,19 @@ public class EraController implements Initializable {
         if (eraShape == null) return;
 
         if (hasVortex) {
-            if (!eraShape.getStyleClass().contains("vortex")) {
-                eraShape.getStyleClass().add("vortex");
+            if (!eraShape.getStyleClass().contains(VORTEX_STYLE_CLASS)) {
+                eraShape.getStyleClass().add(VORTEX_STYLE_CLASS);
             }
         } else {
-            eraShape.getStyleClass().remove("vortex");
+            eraShape.getStyleClass().remove(VORTEX_STYLE_CLASS);
         }
 
         if (currentRifts >= 2) {
-            if (!eraShape.getStyleClass().contains("high-rifts")) {
-                eraShape.getStyleClass().add("high-rifts");
+            if (!eraShape.getStyleClass().contains(HIGH_RIFTS_STYLE_CLASS)) {
+                eraShape.getStyleClass().add(HIGH_RIFTS_STYLE_CLASS);
             }
         } else {
-            eraShape.getStyleClass().remove("high-rifts");
+            eraShape.getStyleClass().remove(HIGH_RIFTS_STYLE_CLASS);
         }
     }
 

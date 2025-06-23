@@ -2,7 +2,7 @@ package hr.algebra.theloop.view;
 
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.Duplicate;
-import java.util.List;
+import hr.algebra.theloop.utils.GameLogger;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -14,6 +14,9 @@ import javafx.scene.text.Text;
 import java.util.List;
 
 public class SimpleEraView extends Pane {
+
+    private static final String FONT_FAMILY = "Arial";
+
     private final Era era;
     private final Rectangle background;
     private final Text nameText;
@@ -38,30 +41,30 @@ public class SimpleEraView extends Pane {
 
         nameText = new Text(era.getDisplayName());
         nameText.setFill(Color.WHITE);
-        nameText.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        nameText.setFont(Font.font(FONT_FAMILY, FontWeight.BOLD, 12));
         nameText.setLayoutX(8);
         nameText.setLayoutY(20);
 
         riftsText = new Text("🔴0");
         riftsText.setLayoutX(8);
         riftsText.setLayoutY(45);
-        riftsText.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
+        riftsText.setFont(Font.font(FONT_FAMILY, FontWeight.NORMAL, 14));
 
         energyText = new Text("🟢1");
         energyText.setLayoutX(50);
         energyText.setLayoutY(45);
-        energyText.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
+        energyText.setFont(Font.font(FONT_FAMILY, FontWeight.NORMAL, 14));
 
         duplicatesText = new Text("👤0");
         duplicatesText.setLayoutX(8);
         duplicatesText.setLayoutY(70);
-        duplicatesText.setFont(Font.font("Arial", FontWeight.NORMAL, 12));
+        duplicatesText.setFont(Font.font(FONT_FAMILY, FontWeight.NORMAL, 12));
         duplicatesText.setFill(Color.LIGHTBLUE);
 
         getChildren().addAll(background, nameText, riftsText, energyText, duplicatesText);
 
         setOnMouseClicked(event -> {
-            System.out.println("🖱️ " + era.getDisplayName() + " clicked");
+            GameLogger.gameFlow("🖱️ " + era.getDisplayName() + " clicked");
             event.consume();
         });
     }
