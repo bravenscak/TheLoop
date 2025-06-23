@@ -12,7 +12,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.function.Consumer;
 
-
 public class GameServer implements Runnable {
 
     private final int port;
@@ -36,8 +35,8 @@ public class GameServer implements Runnable {
 
         running = true;
 
-        try {
-            serverSocket = new ServerSocket(port);
+        try (ServerSocket server = new ServerSocket(port)) {
+            this.serverSocket = server;
             GameLogger.gameFlow("Game server listening on port: " + port + " (Mode: " + playerMode + ")");
 
             while (running && !Thread.currentThread().isInterrupted()) {
@@ -58,14 +57,20 @@ public class GameServer implements Runnable {
 
         } catch (IOException e) {
             GameLogger.error("Failed to start game server on port " + port + ": " + e.getMessage());
-        } finally {
-            cleanup();
         }
     }
 
     private void processClient(Socket clientSocket) {
-        try (ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-             ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream())) {
+        try (Socket socket = clientSocket) {
+            handleClientCommunication(socket);
+        } catch (IOException e) {
+            GameLogger.error("Error processing client: " + e.getMessage());
+        }
+    }
+
+    private void handleClientCommunication(Socket clientSocket) throws IOException {
+        try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
+             ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
 
             NetworkGameState receivedState = (NetworkGameState) ois.readObject();
 
@@ -81,14 +86,9 @@ public class GameServer implements Runnable {
             oos.writeObject("Game state received successfully");
             oos.flush();
 
-        } catch (IOException | ClassNotFoundException e) {
-            GameLogger.error("Error processing client: " + e.getMessage());
-        } finally {
-            try {
-                clientSocket.close();
-            } catch (IOException e) {
-                GameLogger.warning("Error closing client socket: " + e.getMessage());
-            }
+        } catch (ClassNotFoundException e) {
+            GameLogger.error("Error deserializing game state: " + e.getMessage());
+            throw new IOException("Failed to deserialize game state", e);
         }
     }
 
@@ -104,16 +104,6 @@ public class GameServer implements Runnable {
         }
 
         GameLogger.gameFlow("Game server stopped");
-    }
-
-    private void cleanup() {
-        if (serverSocket != null && !serverSocket.isClosed()) {
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                GameLogger.warning("Error during server cleanup: " + e.getMessage());
-            }
-        }
     }
 
     public boolean isRunning() {

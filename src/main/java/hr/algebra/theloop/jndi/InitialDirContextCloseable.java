@@ -21,9 +21,4 @@ public class InitialDirContextCloseable extends InitialDirContext implements Aut
         env.put(Context.PROVIDER_URL, "rmi://localhost:1099");
         return env;
     }
-
-    @Override
-    public void close() throws NamingException {
-        super.close();
-    }
 }

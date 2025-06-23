@@ -22,8 +22,8 @@ public class GameActionsHandler {
 
     private GameEngine gameEngine;
     private ThreadingManager threadingManager;
-    private Runnable uiUpdateCallback;
-    private Runnable gameEndCallback;
+    private final Runnable uiUpdateCallback;
+    private final Runnable gameEndCallback;
 
     private PlayerInputHandler inputHandler;
     private PlayerHandManager handManager;
@@ -55,20 +55,26 @@ public class GameActionsHandler {
             return;
         }
 
-        TextInputDialog dialog = new TextInputDialog("quicksave");
-        dialog.setTitle("Save Game");
-        dialog.setHeaderText("Enter save name:");
-        dialog.setContentText("Save name:");
+        Optional<String> saveName = promptForSaveName();
 
-        Optional<String> result = dialog.showAndWait();
-
-        if (result.isPresent() && !result.get().trim().isEmpty()) {
-            String saveName = result.get().trim();
-            GamePersistenceManager.saveGameManually(gameEngine.getGameState(), saveName);
+        if (saveName.isPresent() && !saveName.get().trim().isEmpty()) {
+            GamePersistenceManager.saveGameManually(gameEngine.getGameState(), saveName.get().trim());
         } else {
             GamePersistenceManager.saveGameWithTimestamp(gameEngine.getGameState());
         }
 
+        forceAutoSaveIfAvailable();
+    }
+
+    private Optional<String> promptForSaveName() {
+        TextInputDialog dialog = new TextInputDialog("quicksave");
+        dialog.setTitle("Save Game");
+        dialog.setHeaderText("Enter save name:");
+        dialog.setContentText("Save name:");
+        return dialog.showAndWait();
+    }
+
+    private void forceAutoSaveIfAvailable() {
         if (threadingManager != null) {
             threadingManager.forceAutoSave();
         }
@@ -76,32 +82,50 @@ public class GameActionsHandler {
 
     public GameEngine handleLoadGame(Button referenceButton) {
         try {
-            Stage stage = (Stage) referenceButton.getScene().getWindow();
-            GameState loadedState = GamePersistenceManager.loadGameFromDialog(stage);
-
+            GameState loadedState = loadGameStateFromDialog(referenceButton);
             if (loadedState != null) {
-                stopThreading();
-
-                GameEngine newGameEngine = new GameEngine();
-                newGameEngine.restoreFromGameState(loadedState);
-
-                setupAfterLoad(newGameEngine);
-
-                GameLogger.gameFlow("Game loaded successfully");
-                return newGameEngine;
+                return createGameEngineFromLoadedState(loadedState);
             }
-
         } catch (Exception e) {
             GameLogger.error("Failed to load game: " + e.getMessage());
         }
-
         return null;
     }
 
+    private GameState loadGameStateFromDialog(Button referenceButton) {
+        Stage stage = (Stage) referenceButton.getScene().getWindow();
+        return GamePersistenceManager.loadGameFromDialog(stage);
+    }
+
+    private GameEngine createGameEngineFromLoadedState(GameState loadedState) {
+        stopThreading();
+
+        GameEngine newGameEngine = new GameEngine();
+        newGameEngine.restoreFromGameState(loadedState);
+
+        setupAfterLoad(newGameEngine);
+        GameLogger.gameFlow("Game loaded successfully");
+
+        return newGameEngine;
+    }
+
     public GameEngine handleNewGame() {
+        shutdownCurrentGameSafely();
+
+        GameEngine newGameEngine = createFreshGameEngine();
+        setupAfterNewGame(newGameEngine);
+        startNewGame(newGameEngine);
+
+        GameLogger.gameFlow("New game started in " + newGameEngine.getPlayerMode() + " mode");
+        return newGameEngine;
+    }
+
+    private void shutdownCurrentGameSafely() {
         stopThreading();
         shutdownCurrentGame();
+    }
 
+    private GameEngine createFreshGameEngine() {
         String playerModeStr = System.getProperty("playerMode", "SINGLE_PLAYER");
         PlayerMode playerMode = PlayerMode.valueOf(playerModeStr);
 
@@ -110,83 +134,96 @@ public class GameActionsHandler {
         newGameEngine.setupMultiplayerPlayers(playerMode);
         newGameEngine.setUIUpdateCallback(uiUpdateCallback);
 
-        setupAfterNewGame(newGameEngine);
+        return newGameEngine;
+    }
 
+    private void startNewGame(GameEngine newGameEngine) {
         newGameEngine.startGame();
 
         if (newGameEngine.isMultiplayer()) {
             newGameEngine.broadcastCompleteGameState("New Game Started", "System");
         }
-
-        GameLogger.gameFlow("New game started in " + playerMode + " mode");
-        return newGameEngine;
     }
 
     private void setupAfterLoad(GameEngine newGameEngine) {
         updateGameEngine(newGameEngine);
-
-        if (inputHandler != null) {
-            this.inputHandler = new PlayerInputHandler(newGameEngine);
-        }
-
-        if (handManager != null) {
-            handManager.clearAllSelections();
-        }
-
+        recreateInputHandler();
+        clearHandManagerSelections();
         startThreading();
-
-        if (uiUpdateCallback != null) {
-            uiUpdateCallback.run();
-        }
+        triggerUIUpdate();
     }
 
     private void setupAfterNewGame(GameEngine newGameEngine) {
         updateGameEngine(newGameEngine);
+        recreateMultiplayerComponents(newGameEngine);
+        recreateInputHandler();
+        clearHandManagerSelections();
+        setupUIManagerComponents();
+        startThreading();
+        triggerUIUpdate();
+    }
 
+    private void recreateMultiplayerComponents(GameEngine newGameEngine) {
         if (multiplayerHelper != null) {
             this.multiplayerHelper = new MultiplayerUIHelper(newGameEngine);
         }
+    }
 
+    private void recreateInputHandler() {
         if (inputHandler != null) {
-            this.inputHandler = new PlayerInputHandler(newGameEngine);
+            this.inputHandler = new PlayerInputHandler(gameEngine);
         }
+    }
 
+    private void clearHandManagerSelections() {
         if (handManager != null) {
             handManager.clearAllSelections();
         }
+    }
 
+    private void setupUIManagerComponents() {
         if (uiManager != null && multiplayerHelper != null && handManager != null) {
             uiManager.setMultiplayerComponents(multiplayerHelper, handManager, null);
         }
+    }
 
-        startThreading();
-
+    private void triggerUIUpdate() {
         if (uiUpdateCallback != null) {
             uiUpdateCallback.run();
         }
     }
 
     public void setupEventHandlers() {
+        setupCardClickHandlers();
+        setupEraClickHandlers();
+    }
+
+    private void setupCardClickHandlers() {
         if (handManager != null && inputHandler != null) {
             handManager.setupCardClickHandlers(inputHandler);
         }
+    }
 
+    private void setupEraClickHandlers() {
         if (circularBoard != null && inputHandler != null) {
             for (Era era : Era.values()) {
                 var eraView = circularBoard.getEraView(era);
                 if (eraView != null) {
                     eraView.setOnMouseClicked(event -> {
-                        if (inputHandler.handleEraClick(era)) {
-                            if (uiUpdateCallback != null) {
-                                uiUpdateCallback.run();
-                            }
-                            if (gameEngine.isGameOver() && gameEndCallback != null) {
-                                gameEndCallback.run();
-                            }
-                        }
+                        handleEraClick(era);
                         event.consume();
                     });
                 }
+            }
+        }
+    }
+
+    private void handleEraClick(Era era) {
+        if (inputHandler.handleEraClick(era)) {
+            triggerUIUpdate();
+
+            if (gameEngine.isGameOver() && gameEndCallback != null) {
+                gameEndCallback.run();
             }
         }
     }

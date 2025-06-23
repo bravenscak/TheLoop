@@ -7,6 +7,9 @@ import java.util.Random;
 
 public class CardFactory {
 
+    private CardFactory() {
+    }
+
     private static final Random random = new Random();
 
     public static List<ArtifactCard> createRandomStartingDeck() {
@@ -22,23 +25,6 @@ public class CardFactory {
 
         Collections.shuffle(allStartingCards, random);
         return allStartingCards;
-    }
-
-    public static List<ArtifactCard> createBasicStartingDeck() {
-        List<ArtifactCard> startingCards = new ArrayList<>();
-
-        startingCards.add(EnergyCard.createBasicEnergy());
-        startingCards.add(RiftCard.createBasicRepair());
-        startingCards.add(MovementCard.createTimeWalk());
-
-        startingCards.add(EnergyCard.createEnergyBoost());
-        startingCards.add(RiftCard.createQuantumEraser());
-        startingCards.add(MovementCard.createQuantumLeap());
-        startingCards.add(EnergyCard.createAdjacentEnergy());
-        startingCards.add(RiftCard.createAdjacentRepair());
-        startingCards.add(MovementCard.createEnergeticStep());
-
-        return startingCards;
     }
 
     public static ArtifactCard createRandomCard() {

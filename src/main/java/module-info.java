@@ -5,6 +5,7 @@ module hr.algebra.theloop {
     requires java.desktop;
     requires java.rmi;
     requires java.naming;
+    requires java.logging;
 
     exports hr.algebra.theloop;
 

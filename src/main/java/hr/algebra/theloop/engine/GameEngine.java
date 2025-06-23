@@ -10,6 +10,9 @@ import java.util.Random;
 public class GameEngine {
     private static final int MAX_DUPLICATES_IN_BAG = 28;
 
+    private static final String TIME_AGENT_BRUNO = "Time Agent Bruno";
+    private static final String TIME_AGENT_ALICE = "Time Agent Alice";
+
     private GameState gameState;
     private PlayerManager playerManager;
     private int duplicatesInBag;
@@ -48,11 +51,11 @@ public class GameEngine {
 
     public void setupMultiplayerPlayers(PlayerMode playerMode) {
         if (playerMode == PlayerMode.SINGLE_PLAYER) {
-            playerManager.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
+            playerManager.addPlayer(TIME_AGENT_BRUNO, Era.DAWN_OF_TIME);
             localPlayerIndex = 0;
         } else {
-            playerManager.addPlayer("Time Agent Bruno", Era.DAWN_OF_TIME);
-            playerManager.addPlayer("Time Agent Alice", Era.MEDIEVAL);
+            playerManager.addPlayer(TIME_AGENT_BRUNO, Era.DAWN_OF_TIME);
+            playerManager.addPlayer(TIME_AGENT_ALICE, Era.MEDIEVAL);
             localPlayerIndex = (playerMode == PlayerMode.PLAYER_ONE) ? 0 : 1;
         }
     }
@@ -169,7 +172,7 @@ public class GameEngine {
                     loadedState.getCurrentPlayerIndex()
             );
         } else if (playerManager.isEmpty()) {
-            playerManager.addPlayer("Time Agent Bruno", loadedState.getDrFooPosition().getPrevious());
+            playerManager.addPlayer(TIME_AGENT_BRUNO, loadedState.getDrFooPosition().getPrevious());
         }
 
         if (isMultiplayer()) {

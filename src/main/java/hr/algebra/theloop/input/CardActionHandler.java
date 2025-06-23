@@ -96,13 +96,15 @@ public class CardActionHandler {
         Object card = cardController.getCard();
 
         boolean success = false;
-        if (card instanceof PushDuplicateCard) {
-            success = ((PushDuplicateCard) card).executeWithDuplicate(gameEngine.getGameState(), player, era, selectedDuplicate);
-        } else if (card instanceof PullDuplicateCard) {
-            success = ((PullDuplicateCard) card).executeWithDuplicate(gameEngine.getGameState(), player, era, selectedDuplicate);
-        } else if (card instanceof DestroyDuplicateCard) {
-            success = ((DestroyDuplicateCard) card).executeWithDuplicate(gameEngine.getGameState(), player, era, selectedDuplicate);
-        }
+        success = switch (card) {
+            case PushDuplicateCard pushCard ->
+                    pushCard.executeWithDuplicate(gameEngine.getGameState(), player, era, selectedDuplicate);
+            case PullDuplicateCard pullCard ->
+                    pullCard.executeWithDuplicate(gameEngine.getGameState(), player, era, selectedDuplicate);
+            case DestroyDuplicateCard destroyCard ->
+                    destroyCard.executeWithDuplicate(gameEngine.getGameState(), player, era, selectedDuplicate);
+            default -> false;
+        };
 
         if (success) {
             cardController.playCard();

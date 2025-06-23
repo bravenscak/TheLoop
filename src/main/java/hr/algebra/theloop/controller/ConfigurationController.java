@@ -7,21 +7,23 @@ import hr.algebra.theloop.utils.GameLogger;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextInputDialog;
+import lombok.Setter;
 
 import java.util.Optional;
 
 public class ConfigurationController {
 
+    private static final String NEW_VALUE_PREFIX = "New value: ";
+    private static final String INVALID_VALUE_MESSAGE = "Invalid value. Please enter 1-10.";
+    private static final String INVALID_NUMBER_FORMAT_MESSAGE = "Invalid number format.";
+
     private final ConfigurationManager configManager;
+    @Setter
     private GameEngine gameEngine;
     private Runnable uiUpdateCallback;
 
     public ConfigurationController() {
         this.configManager = ConfigurationManager.getInstance();
-    }
-
-    public void setGameEngine(GameEngine gameEngine) {
-        this.gameEngine = gameEngine;
     }
 
     public void setUIUpdateCallback(Runnable callback) {
@@ -68,20 +70,12 @@ public class ConfigurationController {
         dialog.setContentText("Enter max cycles (1-10):");
 
         Optional<String> result = dialog.showAndWait();
-        result.ifPresent(value -> {
-            try {
-                int cycles = Integer.parseInt(value);
-                if (cycles >= 1 && cycles <= 10) {
+        result.ifPresent(value -> processIntegerInput(value, 1, 10,
+                cycles -> {
                     configManager.setMaxCycles(cycles);
-                    showConfigAlert("Max Cycles Updated", "New value: " + cycles);
+                    showConfigAlert("Max Cycles Updated", NEW_VALUE_PREFIX + cycles);
                     refreshGameWithNewConfig();
-                } else {
-                    showErrorAlert("Invalid value. Please enter 1-10.");
-                }
-            } catch (NumberFormatException e) {
-                showErrorAlert("Invalid number format.");
-            }
-        });
+                }));
     }
 
     public void adjustMissionsToWin() {
@@ -91,20 +85,12 @@ public class ConfigurationController {
         dialog.setContentText("Enter missions needed for victory (1-10):");
 
         Optional<String> result = dialog.showAndWait();
-        result.ifPresent(value -> {
-            try {
-                int missions = Integer.parseInt(value);
-                if (missions >= 1 && missions <= 10) {
+        result.ifPresent(value -> processIntegerInput(value, 1, 10,
+                missions -> {
                     configManager.setMissionsToWin(missions);
-                    showConfigAlert("Missions to Win Updated", "New value: " + missions);
+                    showConfigAlert("Missions to Win Updated", NEW_VALUE_PREFIX + missions);
                     refreshGameWithNewConfig();
-                } else {
-                    showErrorAlert("Invalid value. Please enter 1-10.");
-                }
-            } catch (NumberFormatException e) {
-                showErrorAlert("Invalid number format.");
-            }
-        });
+                }));
     }
 
     public void adjustMaxVortexes() {
@@ -114,20 +100,12 @@ public class ConfigurationController {
         dialog.setContentText("Enter max vortexes before defeat (1-10):");
 
         Optional<String> result = dialog.showAndWait();
-        result.ifPresent(value -> {
-            try {
-                int vortexes = Integer.parseInt(value);
-                if (vortexes >= 1 && vortexes <= 10) {
+        result.ifPresent(value -> processIntegerInput(value, 1, 10,
+                vortexes -> {
                     configManager.setMaxVortexes(vortexes);
-                    showConfigAlert("Max Vortexes Updated", "New value: " + vortexes);
+                    showConfigAlert("Max Vortexes Updated", NEW_VALUE_PREFIX + vortexes);
                     refreshGameWithNewConfig();
-                } else {
-                    showErrorAlert("Invalid value. Please enter 1-10.");
-                }
-            } catch (NumberFormatException e) {
-                showErrorAlert("Invalid number format.");
-            }
-        });
+                }));
     }
 
     public void adjustServerPort() {
@@ -137,39 +115,19 @@ public class ConfigurationController {
         dialog.setContentText("Enter server port (1024-65535):");
 
         Optional<String> result = dialog.showAndWait();
-        result.ifPresent(value -> {
-            try {
-                int port = Integer.parseInt(value);
-                if (port >= 1024 && port <= 65535) {
+        result.ifPresent(value -> processIntegerInput(value, 1024, 65535,
+                port -> {
                     GameConfiguration config = configManager.getConfig();
                     config.setServerPort(port);
                     configManager.updateConfig(config);
                     showConfigAlert("Server Port Updated", "New port: " + port);
-                } else {
-                    showErrorAlert("Invalid port. Please enter 1024-65535.");
-                }
-            } catch (NumberFormatException e) {
-                showErrorAlert("Invalid number format.");
-            }
-        });
+                }));
     }
 
     public void showCurrentConfiguration() {
         GameConfiguration config = configManager.getConfig();
 
-        String configText = String.format(
-                "🎮 GAME SETTINGS:\n" +
-                        "Max Cycles: %d\n" +
-                        "Missions to Win: %d\n" +
-                        "Max Vortexes: %d\n\n" +
-                        "🌐 NETWORK SETTINGS:\n" +
-                        "Server Port: %d\n" +
-                        "Chat Port: %d\n" +
-                        "Connection Timeout: %d ms\n\n" +
-                        "👤 PLAYER SETTINGS:\n" +
-                        "Starting Era: %s\n" +
-                        "Starting Energy: %d\n" +
-                        "Free Battery Uses: %d",
+        String configText = String.format("🎮 GAME SETTINGS:\nMax Cycles: %d\nMissions to Win: %d\nMax Vortexes: %d\n\n🌐 NETWORK SETTINGS:\nServer Port: %d\nChat Port: %d\nConnection Timeout: %d ms\n\n👤 PLAYER SETTINGS:\nStarting Era: %s\nStarting Energy: %d\nFree Battery Uses: %d",
                 config.getMaxCycles(), config.getMissionsToWin(), config.getMaxVortexes(),
                 config.getServerPort(), config.getChatPort(), config.getConnectionTimeout(),
                 config.getStartingEra(), config.getStartingEnergy(), config.getFreeBatteryUses()
@@ -194,6 +152,19 @@ public class ConfigurationController {
             configManager.updateConfig(defaultConfig);
             showConfigAlert("Configuration Reset", "All settings restored to defaults.");
             refreshGameWithNewConfig();
+        }
+    }
+
+    private void processIntegerInput(String value, int min, int max, java.util.function.IntConsumer onSuccess) {
+        try {
+            int intValue = Integer.parseInt(value);
+            if (intValue >= min && intValue <= max) {
+                onSuccess.accept(intValue);
+            } else {
+                showErrorAlert(INVALID_VALUE_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            showErrorAlert(INVALID_NUMBER_FORMAT_MESSAGE);
         }
     }
 

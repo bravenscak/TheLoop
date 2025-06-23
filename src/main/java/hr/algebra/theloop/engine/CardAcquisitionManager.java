@@ -13,7 +13,7 @@ public class CardAcquisitionManager {
 
     private final Random random;
     private final Map<Era, List<ArtifactCard>> availableCards;
-    private final int maxCardsPerEra = 2;
+    private static final int maxCardsPerEra = 2;
 
     public CardAcquisitionManager(Random random) {
         this.random = random;
@@ -29,7 +29,6 @@ public class CardAcquisitionManager {
             if (!gameState.hasVortex(era)) {
                 ArtifactCard newCard = CardFactory.createRandomCard();
                 availableCards.get(era).add(newCard);
-                System.out.println("📋 Initial card at " + era.getDisplayName() + ": " + newCard.getName());
             }
         }
     }
@@ -51,25 +50,11 @@ public class CardAcquisitionManager {
             ArtifactCard newCard = CardFactory.createRandomCard();
 
             availableCards.get(randomEra).add(newCard);
-            System.out.println("📋 New card available at " + randomEra.getDisplayName() + ": " + newCard.getName());
 
             if (availableCards.get(randomEra).size() >= maxCardsPerEra) {
                 availableEras.remove(randomEra);
             }
         }
-    }
-
-    public ArtifactCard acquireCard(Era era, Player player) {
-        List<ArtifactCard> cardsAtEra = availableCards.get(era);
-
-        if (cardsAtEra.isEmpty()) {
-            return null;
-        }
-
-        ArtifactCard acquiredCard = cardsAtEra.remove(0);
-        player.addCardToDeck(acquiredCard);
-
-        return acquiredCard;
     }
 
     public ArtifactCard getAvailableCard(Era era) {
@@ -88,7 +73,6 @@ public class CardAcquisitionManager {
     public void removeCardsFromVortexEra(Era era) {
         List<ArtifactCard> cardsToRemove = availableCards.get(era);
         if (!cardsToRemove.isEmpty()) {
-            System.out.println("🌀 Vortex destroyed " + cardsToRemove.size() + " cards at " + era.getDisplayName());
             cardsToRemove.clear();
         }
     }

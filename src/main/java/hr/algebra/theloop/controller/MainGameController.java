@@ -25,6 +25,13 @@ import java.util.ResourceBundle;
 
 public class MainGameController implements Initializable {
 
+    private static final String SINGLE_PLAYER_MODE = "SINGLE_PLAYER";
+    private static final String PLAYER_MODE_PROPERTY = "playerMode";
+    private static final String DOCUMENTATION_LOCATION = "doc/documentation.html";
+    private static final String DOCUMENTATION_TITLE = "Documentation Generated";
+    private static final String ERROR_TITLE = "Error";
+    private static final String SUCCESS_HEADER = "Success!";
+
     @FXML private CircularBoardView circularBoard;
     @FXML private CardController card1Controller, card2Controller, card3Controller;
     @FXML private Label turnLabel, drFooLocationLabel, cycleLabel, missionsLabel, vortexLabel;
@@ -61,7 +68,7 @@ public class MainGameController implements Initializable {
     private void initializeGame() {
         gameEngine = new GameEngine();
 
-        String playerModeStr = System.getProperty("playerMode", "SINGLE_PLAYER");
+        String playerModeStr = System.getProperty(PLAYER_MODE_PROPERTY, SINGLE_PLAYER_MODE);
         PlayerMode playerMode = PlayerMode.valueOf(playerModeStr);
 
         gameEngine.setPlayerMode(playerMode);
@@ -72,9 +79,13 @@ public class MainGameController implements Initializable {
         gameEngine.startGame();
         gameRunning = true;
 
+        logMultiplayerInfo(playerMode);
+    }
+
+    private void logMultiplayerInfo(PlayerMode playerMode) {
         if (playerMode != PlayerMode.SINGLE_PLAYER) {
             Player localPlayer = gameEngine.getLocalPlayer();
-            System.out.println("🎯 You are controlling: " + localPlayer.getName() +
+            GameLogger.gameFlow("🎯 You are controlling: " + localPlayer.getName() +
                     " (at " + localPlayer.getCurrentEra().getDisplayName() + ")");
         }
     }
@@ -171,8 +182,8 @@ public class MainGameController implements Initializable {
     @FXML private void endTurn() {
         if (!gameRunning || gameEngine.isGameOver()) return;
 
-        if (gameEngine.isMultiplayer() && gameEngine.getLocalPlayerIndex() != 0) {
-            System.out.println("❌ Only Player 1 can end turn!");
+        if (!canEndTurn()) {
+            GameLogger.warning("❌ Only Player 1 can end turn!");
             return;
         }
 
@@ -183,6 +194,10 @@ public class MainGameController implements Initializable {
             updateUI();
             checkGameEnd();
         }
+    }
+
+    private boolean canEndTurn() {
+        return !gameEngine.isMultiplayer() || gameEngine.getLocalPlayerIndex() == 0;
     }
 
     @FXML private void performLoop() {
@@ -203,13 +218,17 @@ public class MainGameController implements Initializable {
 
         GameEngine newEngine = actionsHandler.handleLoadGame(endTurnButton);
         if (newEngine != null) {
-            gameEngine = newEngine;
-            inputHandler = actionsHandler.getInputHandler();
-            multiplayerHelper = actionsHandler.getMultiplayerHelper();
-            uiManager.setMultiplayerComponents(multiplayerHelper, handManager, multiplayerInfoTextArea);
-            configController.setGameEngine(gameEngine);
-            updateUI();
+            updateAfterLoad(newEngine);
         }
+    }
+
+    private void updateAfterLoad(GameEngine newEngine) {
+        gameEngine = newEngine;
+        inputHandler = actionsHandler.getInputHandler();
+        multiplayerHelper = actionsHandler.getMultiplayerHelper();
+        uiManager.setMultiplayerComponents(multiplayerHelper, handManager, multiplayerInfoTextArea);
+        configController.setGameEngine(gameEngine);
+        updateUI();
     }
 
     @FXML private void newGame() {
@@ -264,21 +283,27 @@ public class MainGameController implements Initializable {
     @FXML private void generateDocumentation() {
         try {
             DocumentationUtils.generateDocumentation();
-
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Documentation Generated");
-            alert.setHeaderText("Success!");
-            alert.setContentText("HTML documentation generated successfully!\nLocation: doc/documentation.html");
-            alert.showAndWait();
-
+            showDocumentationSuccess();
         } catch (Exception e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText("Documentation generation failed");
-            alert.setContentText("Error: " + e.getMessage());
-            alert.showAndWait();
-
-            e.printStackTrace();
+            showDocumentationError(e);
         }
+    }
+
+    private void showDocumentationSuccess() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(DOCUMENTATION_TITLE);
+        alert.setHeaderText(SUCCESS_HEADER);
+        alert.setContentText("HTML documentation generated successfully!\nLocation: " + DOCUMENTATION_LOCATION);
+        alert.showAndWait();
+    }
+
+    private void showDocumentationError(Exception e) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(ERROR_TITLE);
+        alert.setHeaderText("Documentation generation failed");
+        alert.setContentText("Error: " + e.getMessage());
+        alert.showAndWait();
+
+        GameLogger.error("Documentation generation failed: " + e.getMessage());
     }
 }

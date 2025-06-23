@@ -6,7 +6,7 @@ import hr.algebra.theloop.utils.GameLogger;
 
 public class ConfigurationManager {
 
-    private static ConfigurationManager instance;
+    private static volatile ConfigurationManager instance;
     private GameConfiguration currentConfig;
 
     private ConfigurationManager() {
@@ -15,7 +15,11 @@ public class ConfigurationManager {
 
     public static ConfigurationManager getInstance() {
         if (instance == null) {
-            instance = new ConfigurationManager();
+            synchronized (ConfigurationManager.class) {
+                if (instance == null) {
+                    instance = new ConfigurationManager();
+                }
+            }
         }
         return instance;
     }
@@ -64,11 +68,25 @@ public class ConfigurationManager {
         GameLogger.gameFlow("🔄 Configuration updated");
     }
 
-    public int getMaxCycles() { return currentConfig.getMaxCycles(); }
-    public int getMissionsToWin() { return currentConfig.getMissionsToWin(); }
-    public int getMaxVortexes() { return currentConfig.getMaxVortexes(); }
-    public int getServerPort() { return currentConfig.getServerPort(); }
-    public int getChatPort() { return currentConfig.getChatPort(); }
+    public int getMaxCycles() {
+        return currentConfig.getMaxCycles();
+    }
+
+    public int getMissionsToWin() {
+        return currentConfig.getMissionsToWin();
+    }
+
+    public int getMaxVortexes() {
+        return currentConfig.getMaxVortexes();
+    }
+
+    public int getServerPort() {
+        return currentConfig.getServerPort();
+    }
+
+    public int getChatPort() {
+        return currentConfig.getChatPort();
+    }
 
     public void setMaxCycles(int maxCycles) {
         currentConfig.setMaxCycles(maxCycles);
@@ -86,7 +104,6 @@ public class ConfigurationManager {
     }
 
     private GameConfiguration createDefaultConfiguration() {
-        GameConfiguration config = new GameConfiguration();
-        return config;
+        return new GameConfiguration();
     }
 }

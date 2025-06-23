@@ -1,9 +1,6 @@
 package hr.algebra.theloop.jndi;
 
-import javax.naming.Context;
 import javax.naming.NamingException;
-import javax.naming.directory.InitialDirContext;
-import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConfigurationReader {
@@ -27,6 +24,7 @@ public class ConfigurationReader {
             jndiStore.put("connection.timeout", "5000");
         } catch (Exception e) {
             jndiEnabled = false;
+            System.err.println("Failed to initialize JNDI configuration: " + e.getMessage());
         }
     }
 

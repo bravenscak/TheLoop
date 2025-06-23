@@ -22,7 +22,7 @@ public abstract class ArtifactCard implements Serializable {
     protected String flavorText;
     protected int cost;
 
-    public ArtifactCard(String name, String description, CardDimension dimension) {
+    protected ArtifactCard(String name, String description, CardDimension dimension) {
         this.name = name;
         this.description = description;
         this.dimension = dimension;

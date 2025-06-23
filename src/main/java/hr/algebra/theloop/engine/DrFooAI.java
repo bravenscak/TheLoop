@@ -121,7 +121,6 @@ public class DrFooAI {
         if (gameState.getCurrentCycle() > 3) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
             GameLogger.gameEnd("DEFEAT: Dr. Foo completed 3 cycles!");
-            return;
         }
     }
 

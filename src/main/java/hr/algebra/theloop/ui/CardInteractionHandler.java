@@ -31,15 +31,7 @@ public class CardInteractionHandler {
     }
 
     public boolean canPlayCard() {
-        if (isEmpty || card == null) {
-            return false;
-        }
-
-        if (card.isExhausted()) {
-            return false;
-        }
-
-        return true;
+        return !isEmpty && card != null && !card.isExhausted();
     }
 
     public void playCard() {

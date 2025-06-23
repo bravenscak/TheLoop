@@ -21,6 +21,9 @@ public class GamePersistenceManager {
     private static final String AUTO_SAVE_PREFIX = "autosave_";
     private static final String FILE_EXTENSION = ".dat";
 
+    private GamePersistenceManager() {
+    }
+
     public static boolean saveGameManually(GameState gameState, String saveName) {
         try {
             createSavesDirectory();
@@ -119,14 +122,13 @@ public class GamePersistenceManager {
                     .filter(path -> path.toString().endsWith(FILE_EXTENSION))
                     .map(path -> path.getFileName().toString())
                     .sorted((a, b) -> {
-                        // Sort: manual saves first, then auto saves, both by date desc
                         boolean aIsManual = a.startsWith(MANUAL_SAVE_PREFIX);
                         boolean bIsManual = b.startsWith(MANUAL_SAVE_PREFIX);
 
                         if (aIsManual && !bIsManual) return -1;
                         if (!aIsManual && bIsManual) return 1;
 
-                        return b.compareTo(a); // Reverse alphabetical (newest first)
+                        return b.compareTo(a);
                     })
                     .toList();
 

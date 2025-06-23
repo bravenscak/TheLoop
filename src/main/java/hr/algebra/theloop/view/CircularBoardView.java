@@ -9,9 +9,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 import javafx.util.Duration;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 
 public class CircularBoardView extends Pane {
 
@@ -20,11 +19,11 @@ public class CircularBoardView extends Pane {
     private static final double CENTER_X = BOARD_WIDTH / 2;
     private static final double CENTER_Y = BOARD_HEIGHT / 2;
 
-    private Map<Era, SimpleEraView> eraViews;
+    private EnumMap<Era, SimpleEraView> eraViews;
     private Polygon drFooMachine;
 
     public CircularBoardView() {
-        this.eraViews = new HashMap<>();
+        this.eraViews = new EnumMap<>(Era.class);
         setupBoard();
         createSimpleEras();
         createDrFooMachine();
@@ -59,10 +58,10 @@ public class CircularBoardView extends Pane {
 
     private void createDrFooMachine() {
         drFooMachine = new Polygon();
-        drFooMachine.getPoints().addAll(new Double[]{
+        drFooMachine.getPoints().addAll(
                 0.0, -25.0, 10.0, -10.0, 3.0, -10.0, 3.0, 10.0,
                 -3.0, 10.0, -3.0, -10.0, -10.0, -10.0
-        });
+        );
 
         drFooMachine.setLayoutX(CENTER_X);
         drFooMachine.setLayoutY(CENTER_Y);

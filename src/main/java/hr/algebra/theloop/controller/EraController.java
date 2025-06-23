@@ -1,6 +1,7 @@
 package hr.algebra.theloop.controller;
 
 import hr.algebra.theloop.model.Era;
+import hr.algebra.theloop.utils.GameLogger;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.input.MouseEvent;
@@ -94,10 +95,8 @@ public class EraController implements Initializable {
     @FXML
     private void onEraClicked(MouseEvent event) {
         if (era != null) {
-            System.out.println("Era clicked: " + era.getDisplayName() +
+            GameLogger.gameFlow("Era clicked: " + era.getDisplayName() +
                     " (Rifts: " + currentRifts + ", Energy: " + currentEnergy + ")");
-
-            // TODO: Implement era interaction (movement, card targeting, etc.)
         }
     }
 
@@ -120,5 +119,4 @@ public class EraController implements Initializable {
     public boolean isPlayerPresent() {
         return playerPresent;
     }
-
 }

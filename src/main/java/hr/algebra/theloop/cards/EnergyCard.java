@@ -5,6 +5,8 @@ import hr.algebra.theloop.model.GameState;
 import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.utils.GameLogger;
 
+import java.util.Objects;
+
 public class EnergyCard extends ArtifactCard {
 
     public enum EnergyEffect {
@@ -95,5 +97,21 @@ public class EnergyCard extends ArtifactCard {
 
     public static EnergyCard createEnergySiphon() {
         return new EnergyCard("Energy Siphon", 2, EnergyEffect.STEAL_FROM_DR_FOO);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!super.equals(obj)) return false;
+        if (getClass() != obj.getClass()) return false;
+
+        EnergyCard that = (EnergyCard) obj;
+        return energyAmount == that.energyAmount &&
+                effect == that.effect;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), energyAmount, effect);
     }
 }
