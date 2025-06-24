@@ -13,7 +13,7 @@ public class ThreadingManager {
     private Timeline autoSaveTimeline;
     private boolean isRunning = false;
 
-    private static final int AUTO_SAVE_INTERVAL = 30;
+    private static final int AUTO_SAVE_INTERVAL = 120;
 
     public ThreadingManager(GameEngine gameEngine) {
         this.gameEngine = gameEngine;
