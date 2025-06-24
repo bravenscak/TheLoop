@@ -4,6 +4,7 @@ import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
+import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.model.PlayerMode;
 import hr.algebra.theloop.persistence.GamePersistenceManager;
 import hr.algebra.theloop.thread.ThreadingManager;
@@ -84,12 +85,36 @@ public class GameActionsHandler {
         try {
             GameState loadedState = loadGameStateFromDialog(referenceButton);
             if (loadedState != null) {
-                return createGameEngineFromLoadedState(loadedState);
+                shutdownCurrentGameSafely();
+
+                GameEngine newGameEngine = new GameEngine();
+                newGameEngine.restoreFromGameState(loadedState);
+
+                setupAfterLoadGame(newGameEngine);
+
+                GameLogger.gameFlow("Game loaded successfully");
+                return newGameEngine;
             }
         } catch (Exception e) {
             GameLogger.error("Failed to load game: " + e.getMessage());
         }
         return null;
+    }
+
+    private void setupAfterLoadGame(GameEngine newGameEngine) {
+        updateGameEngine(newGameEngine);
+        recreateMultiplayerComponents(newGameEngine);
+        recreateInputHandler();
+        clearHandManagerSelections();
+        setupUIManagerComponents();
+        setupEventHandlers();
+        startThreading();
+
+
+        if (newGameEngine.isMultiplayer()) {
+            newGameEngine.broadcastCompleteGameState("Game Loaded", "System");
+        }
+        triggerUIUpdate();
     }
 
     private GameState loadGameStateFromDialog(Button referenceButton) {
@@ -146,12 +171,9 @@ public class GameActionsHandler {
     }
 
     private void setupAfterLoad(GameEngine newGameEngine) {
-        updateGameEngine(newGameEngine);
-        recreateInputHandler();
-        clearHandManagerSelections();
-        startThreading();
-        triggerUIUpdate();
+        setupAfterNewGame(newGameEngine);
     }
+
 
     private void setupAfterNewGame(GameEngine newGameEngine) {
         updateGameEngine(newGameEngine);
@@ -159,6 +181,7 @@ public class GameActionsHandler {
         recreateInputHandler();
         clearHandManagerSelections();
         setupUIManagerComponents();
+        setupEventHandlers();
         startThreading();
         triggerUIUpdate();
     }

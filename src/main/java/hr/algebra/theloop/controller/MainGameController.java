@@ -238,6 +238,9 @@ public class MainGameController implements Initializable {
         multiplayerHelper = actionsHandler.getMultiplayerHelper();
         uiManager.setMultiplayerComponents(multiplayerHelper, handManager, multiplayerInfoTextArea);
         configController.setGameEngine(gameEngine);
+        Player displayPlayer = gameEngine.isMultiplayer() ?
+                gameEngine.getLocalPlayer() : gameEngine.getCurrentPlayer();
+        handManager.updateHand(displayPlayer);
         updateUI();
     }
 

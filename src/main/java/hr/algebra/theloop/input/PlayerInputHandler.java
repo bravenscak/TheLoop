@@ -50,9 +50,11 @@ public class PlayerInputHandler {
             boolean success = false;
 
             if (selectedCard.getCard() instanceof MovementCard) {
-                success = cardActionHandler.handleMovementCard(playerToControl, selectedCardIndex, era, selectedCard);
+                success = handleMovementCardFixed(playerToControl, selectedCardIndex, era);
             } else if (selectedCard.getCard() instanceof EnergyCard) {
-                success = gameEngine.playCard(playerToControl, selectedCardIndex, playerToControl.getCurrentEra());
+                success = gameEngine.playCard(playerToControl, selectedCardIndex, era);
+            } else if (selectedCard.getCard() instanceof RiftCard) {
+                success = gameEngine.playCard(playerToControl, selectedCardIndex, era);
             } else if (cardActionHandler.isDuplicateCard(selectedCard.getCard())) {
                 success = cardActionHandler.handleDuplicateCard(playerToControl, selectedCardIndex, era, selectedCard);
             } else {
@@ -134,6 +136,29 @@ public class PlayerInputHandler {
             selectedCard = null;
             selectedCardIndex = -1;
         }
+    }
+
+    private boolean handleMovementCardFixed(Player player, int cardIndex, Era targetEra) {
+        MovementCard movementCard = (MovementCard) selectedCard.getCard();
+        Era currentEra = player.getCurrentEra();
+
+        if (!movementCard.isValidTarget(currentEra, targetEra)) {
+            return false;
+        }
+
+        if (!movementCard.canExecute(gameEngine.getGameState(), player)) {
+            return false;
+        }
+
+        selectedCard.playCard();
+
+        movementCard.executeMovement(gameEngine.getGameState(), player, targetEra);
+
+        gameEngine.getMissionManager().checkAllMissions(
+                gameEngine.getGameState(), player, "MovementCard");
+        gameEngine.broadcastGameState("Used " + movementCard.getName(), player.getName());
+
+        return true;
     }
 
     private boolean canAcceptInput() {
