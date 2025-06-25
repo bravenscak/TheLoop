@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GamePersistenceManager {
 
@@ -20,14 +21,26 @@ public class GamePersistenceManager {
     private static final String MANUAL_SAVE_PREFIX = "manual_save_";
     private static final String AUTO_SAVE_PREFIX = "autosave_";
     private static final String FILE_EXTENSION = ".dat";
+    private static final AtomicBoolean FILE_ACCESS_IN_PROGRESS = new AtomicBoolean(false);
 
     private GamePersistenceManager() {
     }
 
-    public static boolean saveGameManually(GameState gameState, String saveName) {
+    public static synchronized boolean saveGameManually(GameState gameState, String saveName) {
+
+        while (FILE_ACCESS_IN_PROGRESS.get()) {
+            try {
+                GamePersistenceManager.class.wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        FILE_ACCESS_IN_PROGRESS.set(true);
+
         try {
             createSavesDirectory();
-
             String fileName = MANUAL_SAVE_PREFIX + saveName + FILE_EXTENSION;
             Path filePath = Paths.get(SAVES_DIRECTORY, fileName);
 
@@ -41,10 +54,27 @@ public class GamePersistenceManager {
         } catch (IOException e) {
             GameLogger.error("Manual save failed: " + e.getMessage());
             return false;
+        } finally {
+            FILE_ACCESS_IN_PROGRESS.set(false);
+
+            synchronized(GamePersistenceManager.class) {
+                GamePersistenceManager.class.notifyAll();
+            }
         }
     }
 
-    public static boolean saveGameWithTimestamp(GameState gameState) {
+    public static synchronized boolean saveGameWithTimestamp(GameState gameState) {
+
+        while (FILE_ACCESS_IN_PROGRESS.get()) {
+            try {
+                GamePersistenceManager.class.wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        FILE_ACCESS_IN_PROGRESS.set(true);
         try {
             createSavesDirectory();
 
@@ -62,10 +92,27 @@ public class GamePersistenceManager {
         } catch (IOException e) {
             GameLogger.error("Manual save failed: " + e.getMessage());
             return false;
+        } finally {
+            FILE_ACCESS_IN_PROGRESS.set(false);
+            synchronized(GamePersistenceManager.class) {
+                GamePersistenceManager.class.notifyAll();
+            }
         }
     }
 
-    public static GameState loadGameState(String fileName) {
+    public static synchronized GameState loadGameState(String fileName) {
+
+        while (FILE_ACCESS_IN_PROGRESS.get()) {
+            try {
+                GamePersistenceManager.class.wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+        }
+
+        FILE_ACCESS_IN_PROGRESS.set(true);
+
         try {
             Path filePath = Paths.get(SAVES_DIRECTORY, fileName);
 
@@ -83,6 +130,12 @@ public class GamePersistenceManager {
         } catch (IOException | ClassNotFoundException e) {
             GameLogger.error("Failed to load game: " + e.getMessage());
             return null;
+        } finally {
+            FILE_ACCESS_IN_PROGRESS.set(false);
+
+            synchronized(GamePersistenceManager.class) {
+                GamePersistenceManager.class.notifyAll();
+            }
         }
     }
 

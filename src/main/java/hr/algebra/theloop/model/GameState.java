@@ -1,5 +1,6 @@
 package hr.algebra.theloop.model;
 
+import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.missions.Mission;
 import lombok.Data;
 import lombok.NonNull;
@@ -108,7 +109,7 @@ public class GameState implements Serializable {
         resources.createVortex(era);
         activeMissions.removeIf(mission -> era.equals(mission.getAssignedEra()));
 
-        if (getVortexCount() >= 3) {
+        if (getVortexCount() >= ConfigurationManager.INSTANCE.getMaxVortexes()) {
             endGame(GameResult.DEFEAT_VORTEXES);
         }
     }

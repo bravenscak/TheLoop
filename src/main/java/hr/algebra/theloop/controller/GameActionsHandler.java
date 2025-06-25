@@ -4,7 +4,6 @@ import hr.algebra.theloop.engine.GameEngine;
 import hr.algebra.theloop.input.PlayerInputHandler;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
-import hr.algebra.theloop.model.Player;
 import hr.algebra.theloop.model.PlayerMode;
 import hr.algebra.theloop.persistence.GamePersistenceManager;
 import hr.algebra.theloop.thread.ThreadingManager;
@@ -120,18 +119,6 @@ public class GameActionsHandler {
     private GameState loadGameStateFromDialog(Button referenceButton) {
         Stage stage = (Stage) referenceButton.getScene().getWindow();
         return GamePersistenceManager.loadGameFromDialog(stage);
-    }
-
-    private GameEngine createGameEngineFromLoadedState(GameState loadedState) {
-        stopThreading();
-
-        GameEngine newGameEngine = new GameEngine();
-        newGameEngine.restoreFromGameState(loadedState);
-
-        setupAfterLoad(newGameEngine);
-        GameLogger.gameFlow("Game loaded successfully");
-
-        return newGameEngine;
     }
 
     public GameEngine handleNewGame() {

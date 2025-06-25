@@ -1,5 +1,6 @@
 package hr.algebra.theloop.engine;
 
+import hr.algebra.theloop.config.ConfigurationManager;
 import hr.algebra.theloop.model.Duplicate;
 import hr.algebra.theloop.model.Era;
 import hr.algebra.theloop.model.GameState;
@@ -12,10 +13,13 @@ public class DrFooAI {
 
     private final Random random;
     private final GameEngine gameEngine;
+    private final ConfigurationManager configManager;
 
     public DrFooAI(Random random, GameEngine gameEngine) {
         this.random = random;
         this.gameEngine = gameEngine;
+        this.configManager = ConfigurationManager.getInstance();
+
     }
 
     public void executeDrFooPhase(GameState gameState) {
@@ -112,13 +116,13 @@ public class DrFooAI {
     }
 
     private void checkDefeatConditions(GameState gameState) {
-        if (gameState.getVortexCount() >= 3) {
+        if (gameState.getVortexCount() >= configManager.getMaxVortexes()) {
             gameState.endGame(GameResult.DEFEAT_VORTEXES);
             GameLogger.gameEnd("DEFEAT: 3+ vortexes created!");
             return;
         }
 
-        if (gameState.getCurrentCycle() > 3) {
+        if (gameState.getCurrentCycle() > configManager.getMaxCycles()) {
             gameState.endGame(GameResult.DEFEAT_CYCLES);
             GameLogger.gameEnd("DEFEAT: Dr. Foo completed 3 cycles!");
         }
